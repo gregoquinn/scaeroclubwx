@@ -114,6 +114,11 @@ a.chip:hover{filter:brightness(0.94)}
 .metarline code{background:rgba(255,255,255,.12);color:#eaf2fa;padding:3px 8px;border-radius:6px;font-size:11.5px;letter-spacing:.2px}
 .metarline.miss2{color:#c3d8ec;font-size:12px}
 .metarline.miss2 a{color:#fff;text-decoration:underline}
+.camline{margin:-2px 0 12px;font-size:12px}
+.camline a{color:#eaf2fa;text-decoration:underline}
+.camline a:hover{color:#fff}
+.lc-cam{color:inherit;text-decoration:none;font-size:10.5px;font-weight:600;border:1px solid var(--line);border-radius:8px;padding:1px 6px;margin-left:6px}
+.lc-cam:hover{border-color:var(--accent);color:var(--accent)}
 /* ---- local flying area ---- */
 .local{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
 .local-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -227,12 +232,13 @@ a.chip:hover{filter:brightness(0.94)}
           <th data-k="base">Cloud base</th>
           <th data-k="frz">Frz lvl</th>
           <th data-k="turb">Turb</th>
-          <th data-k="metar">METAR</th>
           <th data-k="da">Dens alt</th>
+          <th data-k="metar">METAR</th>
+          <th data-k="cam">Cam</th>
         </tr>
       </thead>
       <tbody id="xtbody">
-        <tr><td colspan="10"><div class="loader">Fetching live weather&hellip;</div></td></tr>
+        <tr><td colspan="12"><div class="loader">Fetching live weather&hellip;</div></td></tr>
       </tbody>
     </table>
   </div>
@@ -269,28 +275,33 @@ a.chip:hover{filter:brightness(0.94)}
   </div>
 
   <div class="foot">
-    <b>Not an official weather brief.</b> This is a planning aid built on <b>Open-Meteo</b> model forecast data (updates hourly), not on official observations. Always obtain a formal pre-flight briefing from <b>PreFlight</b> or <b>MetFlight GA / IFIS</b>, and check current <b>METAR/TAF, ARFOR, SIGMET, GRAFOR and NOTAMs</b> before every flight. Cloud base is <i>estimated</i> from model cloud cover at pressure levels (the lowest layer with 25%+ cover between 950 and 700 hPa) and will differ from real reported ceilings; very low stratus or fog below ~1,000 ft may not be captured &mdash; always confirm against the METAR/TAF. Runway data is indicative &mdash; verify headings, lengths and surfaces against the <b>AIP New Zealand</b>. Crosswind uses the most favourable listed runway. Density altitude and freezing level are model estimates. The <b>METAR</b> column and home-station observation are the genuine official reading from <b>aviationweather.gov</b> where a station reports to the international network; most South Island fields, including Timaru, do not, and will show no live METAR rather than a guess. The local flying area uses approximate reference points, not aerodromes. Fly to your own personal minimums. &copy; Built for South Canterbury Aero Club use.
+    <b>Not an official weather brief.</b> This is a planning aid built on <b>Open-Meteo</b> model forecast data (updates hourly), not on official observations. Always obtain a formal pre-flight briefing from <b>PreFlight</b> or <b>MetFlight GA / IFIS</b>, and check current <b>METAR/TAF, ARFOR, SIGMET, GRAFOR and NOTAMs</b> before every flight. Cloud base is <i>estimated</i> from model cloud cover at pressure levels (the lowest layer with 25%+ cover between 950 and 700 hPa) and will differ from real reported ceilings; very low stratus or fog below ~1,000 ft may not be captured &mdash; always confirm against the METAR/TAF. Runway data is indicative &mdash; verify headings, lengths and surfaces against the <b>AIP New Zealand</b>. Crosswind uses the most favourable listed runway. Density altitude and freezing level are model estimates. The <b>METAR</b> column and home-station observation are the genuine official reading from <b>aviationweather.gov</b> where a station reports to the international network; most South Island fields, including Timaru, do not, and will show no live METAR rather than a guess. The local flying area uses approximate reference points, not aerodromes. The <b>Cam</b> column links to a genuine public webcam for fields that have one (club, airport or nearby operator sites) &mdash; not every field does, and Milford Sound's is a nearby operator view rather than one mounted on the strip itself; it isn't ours and we don't control its uptime, so it can go down without notice. Fly to your own personal minimums. &copy; Built for South Canterbury Aero Club use.
   </div>
 </div>
 
 <script>
+// webcam: a genuine, working public webcam page for that field, checked by
+// hand (not every aggregator hit panned out — several "hits" turned out to be
+// dead links or aggregator search pages with no real feed, so those are left
+// blank rather than pointing somewhere misleading). Blank means honestly
+// show "no public webcam" rather than guess.
 const AERODROMES = [
-  {icao:"NZNS", name:"Nelson",            lat:-41.298,  lon:173.221, elev:17,   rwys:[20,110]},
+  {icao:"NZNS", name:"Nelson",            lat:-41.298,  lon:173.221, elev:17,   rwys:[20,110], webcam:"https://www.nelsonaeroclub.co.nz/weather-cams/"},
   {icao:"NZWB", name:"Woodbourne (Blenheim)", lat:-41.518, lon:173.870, elev:109, rwys:[60,180]},
   {icao:"NZWS", name:"Westport",          lat:-41.738,  lon:171.581, elev:13,   rwys:[160]},
   {icao:"NZKI", name:"Kaikoura",          lat:-42.425,  lon:173.605, elev:20,   rwys:[10]},
-  {icao:"NZHK", name:"Hokitika",          lat:-42.714,  lon:170.986, elev:146,  rwys:[30,210]},
+  {icao:"NZHK", name:"Hokitika",          lat:-42.714,  lon:170.986, elev:146,  rwys:[30,210], webcam:"https://airportwebcams.net/hokitika-airport-webcam/"},
   {icao:"NZCH", name:"Christchurch",      lat:-43.489,  lon:172.532, elev:123,  rwys:[20,110]},
   {icao:"NZAS", name:"Ashburton",         lat:-43.903,  lon:171.797, elev:298,  rwys:[160,60]},
   {icao:"NZMC", name:"Mount Cook",        lat:-43.765,  lon:170.133, elev:2153, rwys:[130]},
-  {icao:"NZTL", name:"Lake Tekapo",       lat:-44.005,  lon:170.444, elev:2496, rwys:[110]},
-  {icao:"NZTU", name:"Timaru (Richard Pearse)", lat:-44.3028, lon:171.2225, elev:89, rwys:[20,110], home:true},
-  {icao:"NZOA", name:"Omarama",           lat:-44.487,  lon:169.985, elev:1381, rwys:[90]},
-  {icao:"NZOU", name:"Oamaru",            lat:-44.970,  lon:171.082, elev:99,   rwys:[30]},
-  {icao:"NZWF", name:"Wanaka",            lat:-44.722,  lon:169.246, elev:1142, rwys:[110]},
-  {icao:"NZQN", name:"Queenstown",        lat:-45.021,  lon:168.739, elev:1171, rwys:[50,140]},
+  {icao:"NZTL", name:"Lake Tekapo",       lat:-44.005,  lon:170.444, elev:2496, rwys:[110], webcam:"https://airsafaris.co.nz/airsafaris-webcam/"},
+  {icao:"NZTU", name:"Timaru (Richard Pearse)", lat:-44.3028, lon:171.2225, elev:89, rwys:[20,110], home:true, webcam:"https://www.scaeroclub.co.nz/webcam"},
+  {icao:"NZOA", name:"Omarama",           lat:-44.487,  lon:169.985, elev:1381, rwys:[90], webcam:"https://www.omaramaairfield.co.nz/webcam"},
+  {icao:"NZOU", name:"Oamaru",            lat:-44.970,  lon:171.082, elev:99,   rwys:[30], webcam:"https://www.noac.co.nz/webcams"},
+  {icao:"NZWF", name:"Wanaka",            lat:-44.722,  lon:169.246, elev:1142, rwys:[110], webcam:"https://www.wanakaairport.com/webcam"},
+  {icao:"NZQN", name:"Queenstown",        lat:-45.021,  lon:168.739, elev:1171, rwys:[50,140], webcam:"https://www.queenstownairport.co.nz/webcams-weather/"},
   {icao:"NZLX", name:"Alexandra",         lat:-45.212,  lon:169.373, elev:752,  rwys:[70]},
-  {icao:"NZMF", name:"Milford Sound",     lat:-44.673,  lon:167.923, elev:10,   rwys:[110]},
+  {icao:"NZMF", name:"Milford Sound",     lat:-44.673,  lon:167.923, elev:10,   rwys:[110], webcam:"https://www.southerndiscoveries.co.nz/milford-sound/webcam/"},
   {icao:"NZDN", name:"Dunedin",           lat:-45.928,  lon:170.198, elev:4,    rwys:[30]},
   {icao:"NZNV", name:"Invercargill",      lat:-46.412,  lon:168.313, elev:5,    rwys:[40,90,180]}
 ];
@@ -305,7 +316,7 @@ const PLEVELS=[950,900,850,800,700];
 // within ~50 km, precisely at the stated bearing/distance from NZTU (haversine).
 // Elevations are approximate plains/downs figures for density-altitude purposes.
 const LOCAL_POINTS = [
-  {icao:"NZTU",   name:"Timaru (Richard Pearse)", lat:-44.3028, lon:171.2225, elev:89,  rwys:[20,110], home:true, distKm:0,  bearing:"Home field"},
+  {icao:"NZTU",   name:"Timaru (Richard Pearse)", lat:-44.3028, lon:171.2225, elev:89,  rwys:[20,110], home:true, distKm:0,  bearing:"Home field", webcam:"https://www.scaeroclub.co.nz/webcam"},
   {icao:"LOC-N",  name:"Temuka area",             lat:-44.1699, lon:171.1898, elev:100, rwys:[],       distKm:15, bearing:"N"},
   {icao:"LOC-W",  name:"Pleasant Point area",     lat:-44.2729, lon:170.9875, elev:250, rwys:[],       distKm:19, bearing:"W"},
   {icao:"LOC-S",  name:"Waimate area",            lat:-44.6762, lon:171.0817, elev:200, rwys:[],       distKm:43, bearing:"S"},
@@ -421,6 +432,17 @@ function metarLine(icao){
       +'<code>'+m.raw+'</code></div>';
   }
   return '<div class="metarline miss2">No live METAR reported for '+icao+' (not on the international network) &mdash; check <a href="https://gopreflight.co.nz/app?mode=aero" target="_blank" rel="noopener">PreFlight</a> or <a href="https://metar-taf.com/?c='+icao+'" target="_blank" rel="noopener">metar-taf.com</a>.</div>';
+}
+
+/* ===== Airfield webcams: honest, hand-checked links only. Several webcam
+   aggregator "hits" turned out to be dead pages or generic search results
+   with no actual feed, so those fields are deliberately left without a
+   webcam here rather than linking somewhere misleading &mdash; same honesty
+   policy as the METAR column above. ===== */
+function webcamChip(a){
+  if(!a.webcam) return '<span class="chip n" title="No public webcam found for this field">&mdash;</span>';
+  let host=a.webcam; try{ host=new URL(a.webcam).hostname.replace(/^www\./,""); }catch(e){}
+  return '<a class="chip g" href="'+a.webcam+'" target="_blank" rel="noopener" title="Airfield webcam via '+host+' (opens in a new tab)">CAM</a>';
 }
 async function fetchMetar(){
   try{
@@ -629,6 +651,7 @@ function renderHome(r){
     +'<div class="loc">'+(a.home?"Home base":"Selected station")+' &middot; elev '+a.elev+' ft &middot; runways '+a.rwys.map(h=>String(Math.round(h/10)).padStart(2,"0")).join(", ")+'</div></div>'
     +pillTrigger('<span',pillTx+'</span>',pillBg,pillFg,reasonHTML(r,a),'status-pill')+'</div>'
     +metarLine(a.icao)
+    +(a.webcam?'<div class="camline"><a href="'+a.webcam+'" target="_blank" rel="noopener">Airfield webcam &#8599;</a></div>':'')
     +'<div class="hgrid">';
   cells.forEach(c=>{
     const fc = c.f===1?"flag-amber":c.f===2?"flag-red":"";
@@ -663,7 +686,8 @@ function renderTable(){
       +'<td>'+chip(clsFrz(r.frzFt), r.frzFt!=null?(r.frzFt/1000).toFixed(1)+'k':'', src)+'</td>'
       +'<td>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb):'', src)+'</td>'
       +'<td>'+chip(clsDA(r.da,a.elev), r.da!=null?(r.da/1000).toFixed(1)+'k':'', src)+'</td>'
-      +'<td>'+metarChip(a.icao)+'</td>';
+      +'<td>'+metarChip(a.icao)+'</td>'
+      +'<td>'+webcamChip(a)+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -680,6 +704,7 @@ function sortVal(r){
     case "turb": return r.turb;
     case "da": return r.da?(r.da-r.a.elev):null;
     case "metar": { const m=METAR_MAP[r.a.icao]; const rank={LIFR:0,IFR:1,MVFR:2,VFR:3}; return m?rank[m.fltCat]:9; }
+    case "cam": return r.a.webcam?0:1;
     default: return -r.a.lat;
   }
 }
@@ -739,7 +764,7 @@ function renderLocal(rows){
     const pFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[r.worst];
     const pTx={0:"GO",1:"CAUTION",2:"NO-GO"}[r.worst];
     html+='<div class="localcard">'
-      +'<div class="lc-top"><b>'+a.name+'</b>'+pillTrigger('<span',pTx+'</span>',pBg,pFg,reasonHTML(r,a),'lc-pill')+'</div>'
+      +'<div class="lc-top"><b>'+a.name+(a.webcam?' <a class="lc-cam" href="'+a.webcam+'" target="_blank" rel="noopener" title="Airfield webcam">CAM</a>':'')+'</b>'+pillTrigger('<span',pTx+'</span>',pBg,pFg,reasonHTML(r,a),'lc-pill')+'</div>'
       +'<div class="lc-dist">'+(a.home?"Home field":a.distKm+" km "+a.bearing+" of NZTU")+'</div>'
       +'<div class="lc-row"><span>Wind</span><b>'+(r.wind!=null?Math.round(r.wind)+" "+dirCard(r.wdir):"&mdash;")+'</b></div>'
       +'<div class="lc-row"><span>Gust</span>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust)+" kt":"", sourceURL(a))+'</div>'
