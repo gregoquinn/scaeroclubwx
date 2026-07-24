@@ -117,8 +117,9 @@ a.chip:hover{filter:brightness(0.94)}
 .camline{margin:-2px 0 12px;font-size:12px}
 .camline a{color:#eaf2fa;text-decoration:underline}
 .camline a:hover{color:#fff}
-.lc-cam{color:inherit;text-decoration:none;font-size:10.5px;font-weight:600;border:1px solid var(--line);border-radius:8px;padding:1px 6px;margin-left:6px}
-.lc-cam:hover{border-color:var(--accent);color:var(--accent)}
+.lc-cam{text-decoration:none;font-size:12px;line-height:1;margin-left:5px;opacity:.85}
+.lc-cam:hover{opacity:1}
+.camchip{font-size:14px;line-height:1.15;padding:2px 7px}
 /* ---- local flying area ---- */
 .local{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
 .local-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -234,7 +235,7 @@ a.chip:hover{filter:brightness(0.94)}
           <th data-k="turb">Turb</th>
           <th data-k="da">Dens alt</th>
           <th data-k="metar">METAR</th>
-          <th data-k="cam">Cam</th>
+          <th data-k="cam" title="Airfield webcam">&#128247;</th>
         </tr>
       </thead>
       <tbody id="xtbody">
@@ -275,7 +276,7 @@ a.chip:hover{filter:brightness(0.94)}
   </div>
 
   <div class="foot">
-    <b>Not an official weather brief.</b> This is a planning aid built on <b>Open-Meteo</b> model forecast data (updates hourly), not on official observations. Always obtain a formal pre-flight briefing from <b>PreFlight</b> or <b>MetFlight GA / IFIS</b>, and check current <b>METAR/TAF, ARFOR, SIGMET, GRAFOR and NOTAMs</b> before every flight. Cloud base is <i>estimated</i> from model cloud cover at pressure levels (the lowest layer with 25%+ cover between 950 and 700 hPa) and will differ from real reported ceilings; very low stratus or fog below ~1,000 ft may not be captured &mdash; always confirm against the METAR/TAF. Runway data is indicative &mdash; verify headings, lengths and surfaces against the <b>AIP New Zealand</b>. Crosswind uses the most favourable listed runway. Density altitude and freezing level are model estimates. The <b>METAR</b> column and home-station observation are the genuine official reading from <b>aviationweather.gov</b> where a station reports to the international network; most South Island fields, including Timaru, do not, and will show no live METAR rather than a guess. The local flying area uses approximate reference points, not aerodromes. The <b>Cam</b> column links to a genuine public webcam for fields that have one (club, airport or nearby operator sites) &mdash; not every field does, and Milford Sound's is a nearby operator view rather than one mounted on the strip itself; it isn't ours and we don't control its uptime, so it can go down without notice. Fly to your own personal minimums. &copy; Built for South Canterbury Aero Club use.
+    <b>Not an official weather brief.</b> This is a planning aid built on <b>Open-Meteo</b> model forecast data (updates hourly), not on official observations. Always obtain a formal pre-flight briefing from <b>PreFlight</b> or <b>MetFlight GA / IFIS</b>, and check current <b>METAR/TAF, ARFOR, SIGMET, GRAFOR and NOTAMs</b> before every flight. Cloud base is <i>estimated</i> from model cloud cover at pressure levels (the lowest layer with 25%+ cover between 950 and 700 hPa) and will differ from real reported ceilings; very low stratus or fog below ~1,000 ft may not be captured &mdash; always confirm against the METAR/TAF. Runway data is indicative &mdash; verify headings, lengths and surfaces against the <b>AIP New Zealand</b>. Crosswind uses the most favourable listed runway. Density altitude and freezing level are model estimates. The <b>METAR</b> column and home-station observation are the genuine official reading from <b>aviationweather.gov</b> where a station reports to the international network; most South Island fields, including Timaru, do not, and will show no live METAR rather than a guess. The local flying area uses approximate reference points, not aerodromes. The camera (&#128247;) column links to a genuine public webcam for fields that have one (club, airport or nearby operator sites) &mdash; not every field does, and Milford Sound's is a nearby operator view rather than one mounted on the strip itself; it isn't ours and we don't control its uptime, so it can go down without notice. Fly to your own personal minimums. &copy; Built for South Canterbury Aero Club use.
   </div>
 </div>
 
@@ -442,7 +443,7 @@ function metarLine(icao){
 function webcamChip(a){
   if(!a.webcam) return '<span class="chip n" title="No public webcam found for this field">&mdash;</span>';
   let host=a.webcam; try{ host=new URL(a.webcam).hostname.replace(/^www\./,""); }catch(e){}
-  return '<a class="chip g" href="'+a.webcam+'" target="_blank" rel="noopener" title="Airfield webcam via '+host+' (opens in a new tab)">CAM</a>';
+  return '<a class="chip g camchip" href="'+a.webcam+'" target="_blank" rel="noopener" title="Airfield webcam via '+host+' (opens in a new tab)" aria-label="Airfield webcam">&#128247;</a>';
 }
 async function fetchMetar(){
   try{
@@ -764,7 +765,7 @@ function renderLocal(rows){
     const pFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[r.worst];
     const pTx={0:"GO",1:"CAUTION",2:"NO-GO"}[r.worst];
     html+='<div class="localcard">'
-      +'<div class="lc-top"><b>'+a.name+(a.webcam?' <a class="lc-cam" href="'+a.webcam+'" target="_blank" rel="noopener" title="Airfield webcam">CAM</a>':'')+'</b>'+pillTrigger('<span',pTx+'</span>',pBg,pFg,reasonHTML(r,a),'lc-pill')+'</div>'
+      +'<div class="lc-top"><b>'+a.name+(a.webcam?' <a class="lc-cam" href="'+a.webcam+'" target="_blank" rel="noopener" title="Airfield webcam" aria-label="Airfield webcam">&#128247;</a>':'')+'</b>'+pillTrigger('<span',pTx+'</span>',pBg,pFg,reasonHTML(r,a),'lc-pill')+'</div>'
       +'<div class="lc-dist">'+(a.home?"Home field":a.distKm+" km "+a.bearing+" of NZTU")+'</div>'
       +'<div class="lc-row"><span>Wind</span><b>'+(r.wind!=null?Math.round(r.wind)+" "+dirCard(r.wdir):"&mdash;")+'</b></div>'
       +'<div class="lc-row"><span>Gust</span>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust)+" kt":"", sourceURL(a))+'</div>'
