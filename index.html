@@ -775,27 +775,43 @@ function profURL(lat,lon){
 }
 function windColor(s){ return s>28?"#c0392b":s>15?"#c9820a":"#1f9d55"; }
 
-// A puffy cloud silhouette made of overlapping circles, grouped so the group's
-// own opacity composites once (no dark seams where circles overlap).
+// A soft, painterly cumulus silhouette: seeded overlapping puffs lit by a
+// radial gradient (so each puff reads as rounded, not a flat circle), blurred
+// slightly to remove the "clip-art" hard edges, sitting on a shadowed base and
+// dropping a faint shadow onto the sky behind it. Density, height and puff
+// count all scale with cover so a scattered 15% layer reads as a few small
+// fair-weather puffs while an 85% layer reads as a full bumpy overcast deck.
 function cloudPuffGroup(x0,x1,yTop,yBot,coverPct){
-  const w=Math.max(6,x1-x0), h=Math.max(8,yBot-yTop);
-  const seed=(coverPct*7+ x0*1.3)%97;
+  const w=Math.max(10,x1-x0), h=Math.max(10,yBot-yTop);
+  let seed=(coverPct*13.37+x0*4.2+yTop*0.63)%1000;
   const rnd=k=>{ const v=Math.sin(seed+k*12.9898)*43758.5453; return v-Math.floor(v); };
-  const n=Math.max(3,Math.min(6,Math.round(w/26)));
-  const baseR=Math.min(h*0.6, w/(n*1.15));
-  const rowY=yBot-baseR*0.8;
-  const op=Math.min(0.88,0.3+coverPct/100*0.55).toFixed(2);
-  let base='', puffs='', shine='';
-  // flat shadowed base, slightly darker blue-grey
-  base+='<ellipse cx="'+((x0+x1)/2).toFixed(1)+'" cy="'+(rowY+baseR*0.3).toFixed(1)+'" rx="'+(w*0.47).toFixed(1)+'" ry="'+(baseR*0.6).toFixed(1)+'" fill="#7c8797"/>';
-  for(let i=0;i<n;i++){
-    const cx=x0+baseR*0.85+i*((w-baseR*1.7)/Math.max(1,n-1));
-    const rr=baseR*(0.6+0.42*rnd(i));
-    const cy=rowY-rr*(0.3+0.55*rnd(i+9));
-    puffs+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+rr.toFixed(1)+'" fill="#a9b4c2"/>';
-    if(i%2===0) shine+='<circle cx="'+(cx-rr*0.28).toFixed(1)+'" cy="'+(cy-rr*0.32).toFixed(1)+'" r="'+(rr*0.36).toFixed(1)+'" fill="#e8edf3"/>';
+  const thick = coverPct>=55;
+  const baseR = Math.min(h*(0.34+coverPct/100*0.36), w/6.2);
+  const rowY = yBot-baseR*0.7;
+  const n = Math.max(2, Math.min(8, Math.round(2+coverPct/100*5)));
+  const op = Math.min(0.94,0.4+coverPct/100*0.5).toFixed(2);
+  const spanX0=x0+baseR*0.85, spanX1=x1-baseR*0.85, span=Math.max(1,spanX1-spanX0);
+
+  let shadow='<ellipse cx="'+((x0+x1)/2).toFixed(1)+'" cy="'+(rowY+baseR*0.4).toFixed(1)+'" rx="'+(w*0.46).toFixed(1)+'" ry="'+(baseR*0.55).toFixed(1)+'" fill="#8b96a5" opacity="0.6"/>';
+
+  let back='';
+  if(thick){
+    const nb=Math.max(2,n-2);
+    for(let i=0;i<nb;i++){
+      const cx=spanX0+(nb===1?span/2:i*(span/(nb-1)));
+      const rr=baseR*(0.5+0.34*rnd(i+50));
+      const cy=rowY-baseR*0.45-rr*(0.4+0.4*rnd(i+70));
+      back+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+rr.toFixed(1)+'" fill="url(#puffLit)" opacity="0.8"/>';
+    }
   }
-  return '<g stroke="#5f6b7a" stroke-width="0.5" stroke-opacity="0.3" opacity="'+op+'">'+base+puffs+shine+'</g>';
+  let front='';
+  for(let i=0;i<n;i++){
+    const cx=spanX0+(n===1?span/2:i*(span/(n-1)))+(rnd(i+3)-0.5)*(span/Math.max(1,n))*0.3;
+    const rr=baseR*(0.62+0.5*rnd(i));
+    const cy=rowY-rr*(0.2+0.62*rnd(i+9));
+    front+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+rr.toFixed(1)+'" fill="url(#puffLit)"/>';
+  }
+  return '<g opacity="'+op+'" filter="url(#puffShadow)"><g filter="url(#softBlur)">'+shadow+back+front+'</g></g>';
 }
 
 function renderProfile(a, layers, frzAGL){
@@ -803,6 +819,17 @@ function renderProfile(a, layers, frzAGL){
   const yOf=agl=>bot-(Math.min(Math.max(agl,0),10000)/10000)*(bot-top);
   const xT=t=>tX+((Math.min(Math.max(t,-20),25)+20)/45)*tW;
   let s='<svg viewBox="0 0 '+W+' 404" xmlns="http://www.w3.org/2000/svg">';
+  s+='<defs>'
+    +'<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">'
+      +'<stop offset="0%" stop-color="#e3f0fb"/><stop offset="100%" stop-color="#f6fafd"/>'
+    +'</linearGradient>'
+    +'<radialGradient id="puffLit" cx="33%" cy="28%" r="78%">'
+      +'<stop offset="0%" stop-color="#ffffff"/><stop offset="52%" stop-color="#dee5ee"/><stop offset="100%" stop-color="#a6b1c0"/>'
+    +'</radialGradient>'
+    +'<filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>'
+    +'<filter id="puffShadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1.4" stdDeviation="1.3" flood-color="#3d4652" flood-opacity="0.25"/></filter>'
+    +'</defs>';
+  s+='<rect x="'+cX+'" y="22" width="'+cW+'" height="'+(bot-22)+'" fill="url(#skyGrad)" rx="4"/>';
   s+='<text x="34" y="18" text-anchor="end" font-size="10" fill="#5c6b7a">ft AGL</text>';
   s+='<text x="'+(cX+cW/2)+'" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0d3b66">Cloud</text>';
   s+='<text x="'+(wX+wW/2)+'" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0d3b66">Wind</text>';
