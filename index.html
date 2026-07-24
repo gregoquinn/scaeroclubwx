@@ -782,18 +782,21 @@ function oktas(pct){ return Math.max(0,Math.min(8,Math.round(pct/100*8))); }
 // A soft, painterly cumulus silhouette: seeded overlapping puffs lit by a
 // radial gradient (so each puff reads as rounded, not a flat circle), blurred
 // slightly to remove the "clip-art" hard edges, sitting on a shadowed base and
-// dropping a faint shadow onto the sky behind it. Density, height and puff
-// count all scale with cover so a scattered 15% layer reads as a few small
-// fair-weather puffs while an 85% layer reads as a full bumpy overcast deck.
+// dropping a faint shadow onto the sky behind it. Every dial here (puff count,
+// height, opacity) is driven off the okta number itself rather than the raw
+// percentage, so a layer literally shows that many puffs &mdash; count them
+// and they match the "X/8" tag &mdash; and thick/thin steps land on the same
+// FEW/SCT/BKN/OVC breaks a METAR uses instead of a smooth, arbitrary blend.
 function cloudPuffGroup(x0,x1,yTop,yBot,coverPct){
   const w=Math.max(10,x1-x0), h=Math.max(10,yBot-yTop);
+  const ok=Math.max(1,oktas(coverPct)); // 1-8: also the front-row puff count
   let seed=(coverPct*13.37+x0*4.2+yTop*0.63)%1000;
   const rnd=k=>{ const v=Math.sin(seed+k*12.9898)*43758.5453; return v-Math.floor(v); };
-  const thick = coverPct>=55;
-  const baseR = Math.min(h*(0.34+coverPct/100*0.36), w/6.2);
+  const thick = ok>=5; // BKN(5-7)/OVC(8): fuller, taller deck with a back row for depth
+  const baseR = Math.min(h*(0.3+ok/8*0.4), w/6.2);
   const rowY = yBot-baseR*0.7;
-  const n = Math.max(2, Math.min(8, Math.round(2+coverPct/100*5)));
-  const op = Math.min(0.94,0.4+coverPct/100*0.5).toFixed(2);
+  const n = ok;
+  const op = Math.min(0.94,0.42+ok/8*0.5).toFixed(2);
   const spanX0=x0+baseR*0.85, spanX1=x1-baseR*0.85, span=Math.max(1,spanX1-spanX0);
 
   let shadow='<ellipse cx="'+((x0+x1)/2).toFixed(1)+'" cy="'+(rowY+baseR*0.4).toFixed(1)+'" rx="'+(w*0.46).toFixed(1)+'" ry="'+(baseR*0.55).toFixed(1)+'" fill="#8b96a5" opacity="0.6"/>';
