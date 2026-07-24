@@ -79,6 +79,23 @@ a.chip:hover{filter:brightness(0.94)}
 .homestar{color:#c9820a;font-size:11px}
 .backhome{margin-left:8px;font-size:11px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:14px;padding:3px 10px;cursor:pointer;font-weight:600}
 .backhome:hover{background:rgba(255,255,255,.25)}
+.pill-trigger{cursor:pointer}
+.pill-trigger:focus{outline:2px solid var(--accent);outline-offset:2px}
+.reasonpop{display:none;position:fixed;z-index:999;width:max-content;max-width:290px;background:#fff;color:var(--ink);
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(16,32,44,.2);padding:11px 13px;
+  font-size:12.5px;line-height:1.45}
+.reasonpop.show{display:block}
+.rp-verdict{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;padding:2px 9px;border-radius:10px;margin-bottom:6px}
+.rp-verdict.rp-g{background:var(--greenbg);color:var(--green)}
+.rp-verdict.rp-a{background:var(--amberbg);color:var(--amber)}
+.rp-verdict.rp-r{background:var(--redbg);color:var(--red)}
+.rp-lead{font-weight:600;margin-bottom:6px}
+.rp-list{list-style:none;margin:0 0 8px;padding:0}
+.rp-list li{margin-bottom:5px;padding-left:14px;position:relative}
+.rp-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--grey)}
+.rp-dot.rp-a{background:var(--amber)}
+.rp-dot.rp-r{background:var(--red)}
+.rp-foot{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:6px;margin-top:2px}
 .g{background:var(--greenbg);color:var(--green)}
 .a{background:var(--amberbg);color:var(--amber)}
 .r{background:var(--redbg);color:var(--red)}
@@ -155,6 +172,7 @@ a.chip:hover{filter:brightness(0.94)}
 </style>
 </head>
 <body>
+<div id="reasonpop" class="reasonpop" role="tooltip"></div>
 <div class="wrap">
   <header class="top">
     <div>
@@ -453,13 +471,119 @@ function compute(a, loc){
           wcode:c.weather_code, cloud:c.cloud_cover, temp:c.temperature_2m, dew:c.dew_point_2m};
 }
 
-function statusPill(w){
+function statusPill(r,a){
+  const w=r.worst;
   const map=[["GREEN","g"],["AMBER","a"],["RED","r"]];
   const [t,cl]=map[w];
   const bg={g:"var(--greenbg)",a:"var(--amberbg)",r:"var(--redbg)"}[cl];
   const fg={g:"var(--green)",a:"var(--amber)",r:"var(--red)"}[cl];
-  return '<b style="background:'+bg+';color:'+fg+'">'+t+'</b>';
+  return pillTrigger('<b',t+'</b>', bg, fg, reasonHTML(r,a));
 }
+
+/* ===== Reason popover: why is this pill green/amber/red? =====
+   Every go/no-go style pill (table status, home status, local go/no-go)
+   carries a data-reason attribute with a small explanation. A single
+   floating #reasonpop element (fixed position, outside any clipped
+   containers like .tablewrap) shows it on hover, focus, or click/tap. */
+function escAttr(s){ return String(s).replace(/"/g,"&quot;"); }
+
+// Build a shared opening/closing pair for any pill element so every call
+// site gets identical hover/focus/click wiring without repeating it.
+function pillTrigger(openTag, innerAndClose, bg, fg, reasonHtmlStr, extraClass){
+  const reason=escAttr(reasonHtmlStr);
+  return openTag+' class="pill-trigger'+(extraClass?" "+extraClass:"")+'" tabindex="0" data-reason="'+reason+'"'
+    +' style="background:'+bg+';color:'+fg+'"'
+    +' onmouseenter="showReasonPop(this)" onmouseleave="hideReasonPop()"'
+    +' onfocus="showReasonPop(this)" onblur="hideReasonPop()"'
+    +' onclick="event.stopPropagation();toggleReasonPop(this)">'+innerAndClose;
+}
+
+function factorReasons(r,a){
+  const xw=r.xw?r.xw.xw:null;
+  return [
+    {f:clsXwind(xw), label:"Crosswind", text:(xw!=null?Math.round(xw)+" kt on best runway":"no crosswind data")+" &mdash; caution over 10 kt, red over 15 kt"},
+    {f:clsGust(r.gust), label:"Gust", text:(r.gust!=null?Math.round(r.gust)+" kt":"no gust data")+" &mdash; caution over 20 kt, red over 30 kt"},
+    {f:clsVis(r.vis), label:"Visibility", text:(r.vis!=null?r.vis.toFixed(0)+" km":"no visibility data")+" &mdash; caution under 10 km, red under 5 km"},
+    {f:clsBase(r.base), label:"Cloud base", text:(r.baseNone?"above 9,000 ft (clear of the band)":Math.round(r.base).toLocaleString()+" ft")+" &mdash; caution under 2,500 ft, red under 1,200 ft"},
+    {f:clsFrz(r.frzFt), label:"Freezing level", text:(r.frzFt!=null?r.frzFt.toLocaleString()+" ft":"no freezing-level data")+" &mdash; caution under 8,000 ft, red under 5,000 ft"},
+    {f:clsTurb(r.turb), label:"Turbulence", text:(r.turb!=null?Math.round(r.turb)+" kt (worse of surface gust &amp; wind aloft)":"no turbulence data")+" &mdash; caution over 15 kt, red over 28 kt"},
+    {f:clsDA(r.da,a.elev), label:"Density altitude", text:(r.da!=null?(r.da-a.elev).toLocaleString()+" ft above field elevation":"no density-alt data")+" &mdash; caution over 2,000 ft, red over 4,000 ft"}
+  ];
+}
+const VERDICT_TXT={0:"GOOD",1:"CAUTION",2:"MARGINAL"};
+function reasonHTML(r,a){
+  const bad=factorReasons(r,a).filter(it=>it.f>=1).sort((x,y)=>y.f-x.f);
+  const lead=r.worst===0?"All checked factors are inside the green thresholds used on this page.":
+    r.worst===1?"Caution &mdash; one or more factors are approaching limits:":
+    "Marginal &mdash; one or more factors are beyond the caution limits:";
+  let html='<div class="rp-verdict rp-'+CLS[r.worst]+'">'+VERDICT_TXT[r.worst]+'</div>'
+    +'<div class="rp-lead">'+lead+'</div>';
+  if(bad.length){
+    html+='<ul class="rp-list">'+bad.map(it=>'<li><span class="rp-dot rp-'+CLS[it.f]+'"></span><b>'+it.label+'</b> &mdash; '+it.text+'</li>').join("")+'</ul>';
+  }
+  html+='<div class="rp-foot">General C172/PA-28 training thresholds, not aircraft-specific limits. Always check your POH and currency.</div>';
+  return html;
+}
+// Aggregate reason across every local-area reference point, for the overall
+// "LOCAL FLYING GOOD/CAUTION/MARGINAL" pill (which is a worst-of across points,
+// so its reason needs to name which point and which factor drove it).
+function reasonHTMLLocal(rows){
+  const worst=Math.max(...rows.map(r=>r.worst),0);
+  const lead=worst===0?"All reference points are inside the green thresholds used on this page.":
+    worst===1?"Caution &mdash; at least one reference point has a factor approaching limits:":
+    "Marginal &mdash; at least one reference point has a factor beyond caution limits:";
+  let html='<div class="rp-verdict rp-'+CLS[worst]+'">'+VERDICT_TXT[worst]+'</div>'
+    +'<div class="rp-lead">'+lead+'</div>';
+  const lines=[];
+  rows.forEach(r=>{
+    factorReasons(r,r.a).filter(it=>it.f>=1).forEach(it=>lines.push({f:it.f,name:r.a.name,label:it.label,text:it.text}));
+  });
+  lines.sort((x,y)=>y.f-x.f);
+  if(lines.length){
+    html+='<ul class="rp-list">'+lines.map(it=>'<li><span class="rp-dot rp-'+CLS[it.f]+'"></span><b>'+it.name+' &mdash; '+it.label+'</b> &mdash; '+it.text+'</li>').join("")+'</ul>';
+  }
+  html+='<div class="rp-foot">Worst case across all training-area reference points. General C172/PA-28 thresholds, not aircraft limits.</div>';
+  return html;
+}
+
+function showReasonPop(el){
+  const pop=document.getElementById("reasonpop");
+  if(!pop||!el) return;
+  pop.innerHTML=el.dataset.reason||"";
+  pop.classList.add("show");
+  const rect=el.getBoundingClientRect();
+  const pw=pop.offsetWidth||280, ph=pop.offsetHeight||90;
+  let left=rect.left, top=rect.bottom+8;
+  if(left+pw>window.innerWidth-8) left=window.innerWidth-pw-8;
+  if(left<8) left=8;
+  if(top+ph>window.innerHeight-8) top=Math.max(8, rect.top-ph-8);
+  pop.style.left=left+"px";
+  pop.style.top=top+"px";
+}
+function hideReasonPop(force){
+  const pop=document.getElementById("reasonpop");
+  if(!pop) return;
+  if(pop._pinned && !force) return;
+  pop.classList.remove("show");
+  pop._pinned=false; pop._pinnedEl=null;
+}
+function toggleReasonPop(el){
+  const pop=document.getElementById("reasonpop");
+  if(!pop) return;
+  if(pop.classList.contains("show") && pop._pinned && pop._pinnedEl===el){
+    hideReasonPop(true);
+  }else{
+    showReasonPop(el);
+    pop._pinned=true; pop._pinnedEl=el;
+  }
+}
+document.addEventListener("click",(e)=>{
+  if(e.target.closest && (e.target.closest(".pill-trigger")||e.target.closest("#reasonpop"))) return;
+  hideReasonPop(true);
+});
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") hideReasonPop(true); });
+window.addEventListener("scroll",()=>hideReasonPop(true), true);
+window.addEventListener("resize",()=>hideReasonPop(true));
 
 let ROWS=[], sortKey="lat", sortAsc=true;
 let SELECTED_ICAO = (AERODROMES.find(a=>a.home)||AERODROMES[0]).icao;
@@ -503,7 +627,7 @@ function renderHome(r){
     +(a.home?'':' <button type="button" class="backhome" onclick="selectStation(\''+homeAero.icao+'\')">&larr; back to '+homeAero.name.split(" ")[0]+'</button>')
     +'</h2>'
     +'<div class="loc">'+(a.home?"Home base":"Selected station")+' &middot; elev '+a.elev+' ft &middot; runways '+a.rwys.map(h=>String(Math.round(h/10)).padStart(2,"0")).join(", ")+'</div></div>'
-    +'<span class="status-pill" style="background:'+pillBg+';color:'+pillFg+'">'+pillTx+'</span></div>'
+    +pillTrigger('<span',pillTx+'</span>',pillBg,pillFg,reasonHTML(r,a),'status-pill')+'</div>'
     +metarLine(a.icao)
     +'<div class="hgrid">';
   cells.forEach(c=>{
@@ -530,7 +654,7 @@ function renderTable(){
     const src=sourceURL(a);
     tr.innerHTML =
       '<td class="name"><b class="namelink" onclick="selectStation(\''+a.icao+'\')" role="button" tabindex="0" title="Show flying conditions for '+a.name+'">'+a.name+(a.home?' <span class="homestar" title="Home base">&#9733;</span>':'')+'</b><span>'+a.icao+' &middot; '+a.elev+' ft</span></td>'
-      +'<td class="statuscell">'+statusPill(r.worst)+'</td>'
+      +'<td class="statuscell">'+statusPill(r,a)+'</td>'
       +'<td>'+(r.wind!=null?Math.round(r.wind)+'<small> '+(r.wdir!=null?dirCard(r.wdir):'')+'</small>':'&mdash;')+'</td>'
       +'<td>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust):'', src)+'</td>'
       +'<td>'+chip(clsXwind(r.xw?r.xw.xw:null), xwTxt||'', src)+'</td>'
@@ -606,7 +730,7 @@ function renderLocal(rows){
   const pillBg={0:"var(--greenbg)",1:"var(--amberbg)",2:"var(--redbg)"}[worst];
   const pillFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[worst];
   const pillTx={0:"LOCAL FLYING GOOD",1:"LOCAL FLYING CAUTION",2:"LOCAL FLYING MARGINAL"}[worst];
-  let html='<div class="local-hd"><span class="local-pill" style="background:'+pillBg+';color:'+pillFg+'">'+pillTx+'</span>'
+  let html='<div class="local-hd">'+pillTrigger('<span',pillTx+'</span>',pillBg,pillFg,reasonHTMLLocal(rows),'local-pill')
     +'<span class="local-sub">worst case across the 50&nbsp;km training area, right now</span></div>';
   html+='<div class="localgrid">';
   rows.forEach(r=>{
@@ -615,7 +739,7 @@ function renderLocal(rows){
     const pFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[r.worst];
     const pTx={0:"GO",1:"CAUTION",2:"NO-GO"}[r.worst];
     html+='<div class="localcard">'
-      +'<div class="lc-top"><b>'+a.name+'</b><span class="lc-pill" style="background:'+pBg+';color:'+pFg+'">'+pTx+'</span></div>'
+      +'<div class="lc-top"><b>'+a.name+'</b>'+pillTrigger('<span',pTx+'</span>',pBg,pFg,reasonHTML(r,a),'lc-pill')+'</div>'
       +'<div class="lc-dist">'+(a.home?"Home field":a.distKm+" km "+a.bearing+" of NZTU")+'</div>'
       +'<div class="lc-row"><span>Wind</span><b>'+(r.wind!=null?Math.round(r.wind)+" "+dirCard(r.wdir):"&mdash;")+'</b></div>'
       +'<div class="lc-row"><span>Gust</span>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust)+" kt":"", sourceURL(a))+'</div>'
