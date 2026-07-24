@@ -69,7 +69,16 @@ th.name,td.name{text-align:left}
 td.name b{font-size:13.5px}
 td.name span{color:var(--muted);font-size:11.5px;display:block}
 tr.home-row td{background:#eef5fc}
-td .chip{display:inline-block;min-width:44px;padding:3px 7px;border-radius:6px;font-weight:700;font-size:12.5px}
+.chip{display:inline-block;min-width:44px;padding:3px 7px;border-radius:6px;font-weight:700;font-size:12.5px}
+a.chip{text-decoration:none;cursor:pointer}
+a.chip:hover{filter:brightness(0.94)}
+.vlink{color:inherit;text-decoration:none}
+.vlink:hover{text-decoration:underline}
+.namelink{cursor:pointer}
+.namelink:hover{text-decoration:underline;color:var(--accent)}
+.homestar{color:#c9820a;font-size:11px}
+.backhome{margin-left:8px;font-size:11px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:14px;padding:3px 10px;cursor:pointer;font-weight:600}
+.backhome:hover{background:rgba(255,255,255,.25)}
 .g{background:var(--greenbg);color:var(--green)}
 .a{background:var(--amberbg);color:var(--amber)}
 .r{background:var(--redbg);color:var(--red)}
@@ -295,6 +304,16 @@ function buildURL(list){
     + "&daily=sunrise,sunset"
     + "&wind_speed_unit=kn&timezone=Pacific%2FAuckland&forecast_days=2";
 }
+// Single-station link back to the raw Open-Meteo JSON behind a figure, so anyone
+// can check the source data themselves rather than take a coloured chip on faith.
+function sourceURL(a){
+  return "https://api.open-meteo.com/v1/forecast"
+    + "?latitude="+a.lat+"&longitude="+a.lon
+    + "&current="+CUR
+    + "&hourly="+HRLY
+    + "&daily=sunrise,sunset"
+    + "&wind_speed_unit=kn&timezone=Pacific%2FAuckland&forecast_days=2";
+}
 
 const WCODE = {0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",
   51:"Lt drizzle",53:"Drizzle",55:"Hvy drizzle",56:"Frz drizzle",57:"Frz drizzle",
@@ -356,7 +375,11 @@ function clsTurb(v){ if(v==null)return -1; return v>28?2:v>15?1:0; }   // rough-
 function turbWord(v){ return v>28?"Strong":v>15?"Moderate":"Light"; }
 function clsDA(d,elev){ if(d==null)return -1; const over=d-elev; return over>4000?2:over>2000?1:0; }
 const CLS=["g","a","r"];
-function chip(cls,txt){ if(cls<0) return '<span class="chip n">&mdash;</span>'; return '<span class="chip '+CLS[cls]+'">'+txt+'</span>'; }
+function chip(cls,txt,url){
+  if(cls<0) return '<span class="chip n">&mdash;</span>';
+  if(!url) return '<span class="chip '+CLS[cls]+'">'+txt+'</span>';
+  return '<a class="chip '+CLS[cls]+'" href="'+url+'" target="_blank" rel="noopener" title="View the source data (Open-Meteo)">'+txt+'</a>';
+}
 
 /* ===== Live METAR (official aviationweather.gov, fetched server-side via a
    Netlify Function so the browser never hits the CORS block). Only a handful
@@ -368,15 +391,15 @@ let METAR_MAP={};
 const FLTCAT_CLASS={VFR:"g",MVFR:"a",IFR:"r",LIFR:"r"};
 function metarChip(icao){
   const m=METAR_MAP[icao];
-  if(!m) return '<span class="chip n" title="No live METAR for this station">&mdash;</span>';
+  const href="https://metar-taf.com/?c="+icao;
+  if(!m) return '<a class="chip n" href="'+href+'" target="_blank" rel="noopener" title="No live METAR for this station &mdash; check metar-taf.com">&mdash;</a>';
   const cls=FLTCAT_CLASS[m.fltCat]||"n";
-  return '<span class="chip '+cls+'" title="'+m.raw.replace(/"/g,"&quot;")+'">'+(m.fltCat||"OBS")+'</span>';
+  return '<a class="chip '+cls+'" href="'+href+'" target="_blank" rel="noopener" title="'+m.raw.replace(/"/g,"&quot;")+' &mdash; view on metar-taf.com">'+(m.fltCat||"OBS")+'</a>';
 }
 function metarLine(icao){
   const m=METAR_MAP[icao];
   if(m){
-    const cls=FLTCAT_CLASS[m.fltCat]||"n";
-    return '<div class="metarline"><span class="chip '+cls+'">'+(m.fltCat||"OBS")+'</span>'
+    return '<div class="metarline">'+metarChip(icao)
       +'<code>'+m.raw+'</code></div>';
   }
   return '<div class="metarline miss2">No live METAR reported for '+icao+' (not on the international network) &mdash; check <a href="https://gopreflight.co.nz/app?mode=aero" target="_blank" rel="noopener">PreFlight</a> or <a href="https://metar-taf.com/?c='+icao+'" target="_blank" rel="noopener">metar-taf.com</a>.</div>';
@@ -392,7 +415,7 @@ async function fetchMetar(){
     list.forEach(o=>{ if(o&&o.icaoId) map[o.icaoId]={raw:o.rawOb||"", fltCat:o.fltCat||null, obsTime:o.reportTime||null}; });
     METAR_MAP=map;
     // re-paint the bits that show METAR using data already on hand, no refetch of forecasts
-    if(ROWS && ROWS.length){ const home=ROWS.find(x=>x.a.home); if(home) renderHome(home); renderTable(); }
+    if(ROWS && ROWS.length){ const sel=ROWS.find(x=>x.a.icao===SELECTED_ICAO)||ROWS.find(x=>x.a.home); if(sel) renderHome(sel); renderTable(); }
   }catch(e){ /* no network, or CORS/parse issue — degrade silently, rest of the page is unaffected */ }
 }
 
@@ -439,10 +462,27 @@ function statusPill(w){
 }
 
 let ROWS=[], sortKey="lat", sortAsc=true;
+let SELECTED_ICAO = (AERODROMES.find(a=>a.home)||AERODROMES[0]).icao;
+
+// Swap the home panel + vertical profile over to any South Island station,
+// triggered by clicking its name in the cross-country table (or the profile
+// dropdown). Timaru stays reachable via the "back to Timaru" link.
+window.selectStation=function(icao){
+  SELECTED_ICAO=icao;
+  const row=ROWS.find(r=>r.a.icao===icao);
+  if(row) renderHome(row);
+  renderTable();
+  const sel=document.getElementById("profileSite");
+  if(sel) sel.value=icao;
+  fetchProfile(icao);
+  const hp=document.getElementById("homepanel");
+  if(hp) hp.scrollIntoView({behavior:"smooth",block:"start"});
+};
 
 function renderHome(r){
   const a=r.a;
   const xwTxt = r.xw? (r.xw.xw.toFixed(0)+" kt RWY "+String(r.xw.rwy).padStart(2,"0")+(r.xw.tail?" (tail)":"")) : "&mdash;";
+  const src=sourceURL(a);
   const cells=[
     {lab:"Wind",val:(r.wind!=null?Math.round(r.wind)+" kt":"&mdash;"),note:(r.wdir!=null?dirCard(r.wdir)+" &middot; "+Math.round(r.wdir)+"&deg;":""),f:0},
     {lab:"Gust",val:(r.gust!=null?Math.round(r.gust)+" kt":"&mdash;"),note:"",f:clsGust(r.gust)},
@@ -458,14 +498,17 @@ function renderHome(r){
   const pillBg={0:"var(--greenbg)",1:"var(--amberbg)",2:"var(--redbg)"}[r.worst];
   const pillFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[r.worst];
   const pillTx={0:"GOOD",1:"CAUTION",2:"MARGINAL"}[r.worst];
-  let html='<div class="home"><div class="hh"><div><h2>'+a.name+' &mdash; '+a.icao+'</h2>'
-    +'<div class="loc">Home base &middot; elev '+a.elev+' ft &middot; runways '+a.rwys.map(h=>String(Math.round(h/10)).padStart(2,"0")).join(", ")+'</div></div>'
+  const homeAero=AERODROMES.find(x=>x.home)||AERODROMES[0];
+  let html='<div class="home"><div class="hh"><div><h2>'+a.name+' &mdash; '+a.icao
+    +(a.home?'':' <button type="button" class="backhome" onclick="selectStation(\''+homeAero.icao+'\')">&larr; back to '+homeAero.name.split(" ")[0]+'</button>')
+    +'</h2>'
+    +'<div class="loc">'+(a.home?"Home base":"Selected station")+' &middot; elev '+a.elev+' ft &middot; runways '+a.rwys.map(h=>String(Math.round(h/10)).padStart(2,"0")).join(", ")+'</div></div>'
     +'<span class="status-pill" style="background:'+pillBg+';color:'+pillFg+'">'+pillTx+'</span></div>'
     +metarLine(a.icao)
     +'<div class="hgrid">';
   cells.forEach(c=>{
     const fc = c.f===1?"flag-amber":c.f===2?"flag-red":"";
-    html+='<div class="hcell '+fc+'"><div class="lab">'+c.lab+'</div><div class="val">'+c.val+'</div>'
+    html+='<div class="hcell '+fc+'"><div class="lab">'+c.lab+'</div><div class="val"><a class="vlink" href="'+src+'" target="_blank" rel="noopener" title="View the source data (Open-Meteo)">'+c.val+'</a></div>'
       +(c.note?'<div class="note">'+c.note+'</div>':'')+'</div>';
   });
   html+='</div></div>';
@@ -482,19 +525,20 @@ function renderTable(){
   rows.forEach(r=>{
     const a=r.a;
     const tr=document.createElement("tr");
-    if(a.home) tr.className="home-row";
+    if(a.icao===SELECTED_ICAO) tr.className="home-row";
     const xwTxt = r.xw? r.xw.xw.toFixed(0)+"<small> R"+String(r.xw.rwy).padStart(2,"0")+"</small>" : null;
+    const src=sourceURL(a);
     tr.innerHTML =
-      '<td class="name"><b>'+a.name+'</b><span>'+a.icao+' &middot; '+a.elev+' ft</span></td>'
+      '<td class="name"><b class="namelink" onclick="selectStation(\''+a.icao+'\')" role="button" tabindex="0" title="Show flying conditions for '+a.name+'">'+a.name+(a.home?' <span class="homestar" title="Home base">&#9733;</span>':'')+'</b><span>'+a.icao+' &middot; '+a.elev+' ft</span></td>'
       +'<td class="statuscell">'+statusPill(r.worst)+'</td>'
       +'<td>'+(r.wind!=null?Math.round(r.wind)+'<small> '+(r.wdir!=null?dirCard(r.wdir):'')+'</small>':'&mdash;')+'</td>'
-      +'<td>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust):'')+'</td>'
-      +'<td>'+chip(clsXwind(r.xw?r.xw.xw:null), xwTxt||'')+'</td>'
-      +'<td>'+chip(clsVis(r.vis), r.vis!=null?r.vis.toFixed(0)+' km':'')+'</td>'
-      +'<td>'+chip(clsBase(r.base), r.baseNone?'&gt;9k':(r.base/1000).toFixed(1)+'k')+'</td>'
-      +'<td>'+chip(clsFrz(r.frzFt), r.frzFt!=null?(r.frzFt/1000).toFixed(1)+'k':'')+'</td>'
-      +'<td>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb):'')+'</td>'
-      +'<td>'+chip(clsDA(r.da,a.elev), r.da!=null?(r.da/1000).toFixed(1)+'k':'')+'</td>'
+      +'<td>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust):'', src)+'</td>'
+      +'<td>'+chip(clsXwind(r.xw?r.xw.xw:null), xwTxt||'', src)+'</td>'
+      +'<td>'+chip(clsVis(r.vis), r.vis!=null?r.vis.toFixed(0)+' km':'', src)+'</td>'
+      +'<td>'+chip(clsBase(r.base), r.baseNone?'&gt;9k':(r.base/1000).toFixed(1)+'k', src)+'</td>'
+      +'<td>'+chip(clsFrz(r.frzFt), r.frzFt!=null?(r.frzFt/1000).toFixed(1)+'k':'', src)+'</td>'
+      +'<td>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb):'', src)+'</td>'
+      +'<td>'+chip(clsDA(r.da,a.elev), r.da!=null?(r.da/1000).toFixed(1)+'k':'', src)+'</td>'
       +'<td>'+metarChip(a.icao)+'</td>';
     tb.appendChild(tr);
   });
@@ -542,8 +586,8 @@ async function load(){
     let data=await res.json();
     if(!Array.isArray(data)) data=[data];
     ROWS = data.map((loc,i)=>compute(AERODROMES[i], loc));
-    const home=ROWS.find(r=>r.a.home);
-    if(home) renderHome(home);
+    const sel=ROWS.find(r=>r.a.icao===SELECTED_ICAO)||ROWS.find(r=>r.a.home);
+    if(sel) renderHome(sel);
     renderTable();
     waveCheck();
     const now=new Date();
@@ -574,10 +618,10 @@ function renderLocal(rows){
       +'<div class="lc-top"><b>'+a.name+'</b><span class="lc-pill" style="background:'+pBg+';color:'+pFg+'">'+pTx+'</span></div>'
       +'<div class="lc-dist">'+(a.home?"Home field":a.distKm+" km "+a.bearing+" of NZTU")+'</div>'
       +'<div class="lc-row"><span>Wind</span><b>'+(r.wind!=null?Math.round(r.wind)+" "+dirCard(r.wdir):"&mdash;")+'</b></div>'
-      +'<div class="lc-row"><span>Gust</span>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust)+" kt":"")+'</div>'
-      +'<div class="lc-row"><span>Vis</span>'+chip(clsVis(r.vis), r.vis!=null?r.vis.toFixed(0)+" km":"")+'</div>'
-      +'<div class="lc-row"><span>Cloud base</span>'+chip(clsBase(r.base), r.baseNone?"&gt;9k":(r.base/1000).toFixed(1)+"k ft")+'</div>'
-      +'<div class="lc-row"><span>Turb</span>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb)+" kt":"")+'</div>'
+      +'<div class="lc-row"><span>Gust</span>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust)+" kt":"", sourceURL(a))+'</div>'
+      +'<div class="lc-row"><span>Vis</span>'+chip(clsVis(r.vis), r.vis!=null?r.vis.toFixed(0)+" km":"", sourceURL(a))+'</div>'
+      +'<div class="lc-row"><span>Cloud base</span>'+chip(clsBase(r.base), r.baseNone?"&gt;9k":(r.base/1000).toFixed(1)+"k ft", sourceURL(a))+'</div>'
+      +'<div class="lc-row"><span>Turb</span>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb)+" kt":"", sourceURL(a))+'</div>'
       +'</div>';
   });
   html+='</div><div class="charts-note" style="margin-top:8px">Reference points, not aerodromes &mdash; approximate elevation used for cloud base and density altitude. A nor&rsquo;west arch sitting over the foothills (Geraldine/Pleasant Point) can look very different from the coast even on a fine Timaru day.</div>';
@@ -708,7 +752,7 @@ function initProfile(){
   const sel=document.getElementById("profileSite"); if(!sel) return;
   if(!sel.options.length){
     sel.innerHTML=AERODROMES.map(a=>'<option value="'+a.icao+'"'+(a.home?' selected':'')+'>'+a.name+' ('+a.icao+')</option>').join("");
-    sel.addEventListener("change",()=>fetchProfile(sel.value));
+    sel.addEventListener("change",()=>selectStation(sel.value));
   }
   fetchProfile(sel.value||((AERODROMES.find(a=>a.home)||AERODROMES[0]).icao));
 }
