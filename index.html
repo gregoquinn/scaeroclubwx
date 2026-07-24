@@ -83,6 +83,25 @@ td .chip{display:inline-block;min-width:44px;padding:3px 7px;border-radius:6px;f
 .foot{font-size:11.5px;color:var(--muted);margin-top:18px;line-height:1.6}
 .foot b{color:var(--ink)}
 .loader{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+/* ---- live METAR ---- */
+.metarline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 12px;font-size:12px}
+.metarline code{background:rgba(255,255,255,.12);color:#eaf2fa;padding:3px 8px;border-radius:6px;font-size:11.5px;letter-spacing:.2px}
+.metarline.miss2{color:#c3d8ec;font-size:12px}
+.metarline.miss2 a{color:#fff;text-decoration:underline}
+/* ---- local flying area ---- */
+.local{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.local-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.local-pill{font-size:12px;font-weight:700;letter-spacing:.4px;padding:5px 12px;border-radius:20px}
+.local-sub{font-size:12px;color:var(--muted)}
+.localgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.localcard{border:1px solid var(--line);border-radius:10px;padding:10px 10px 11px;background:#fff}
+.lc-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.lc-top b{font-size:12.5px;line-height:1.25}
+.lc-pill{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.lc-dist{font-size:11px;color:var(--muted);margin:2px 0 7px}
+.lc-row{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--muted);margin-top:3px}
+.lc-row b{color:var(--ink);font-weight:600}
+@media(max-width:820px){ .localgrid{grid-template-columns:repeat(2,1fr)} }
 /* ---- vertical profile ---- */
 .profile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:6px 0 4px;box-shadow:var(--shadow)}
 .profile svg{width:100%;max-width:540px;height:auto;display:block;margin:0 auto}
@@ -153,6 +172,12 @@ td .chip{display:inline-block;min-width:44px;padding:3px 7px;border-radius:6px;f
   <div id="homepanel"></div>
 
   <div class="section-h" style="margin-top:16px">
+    <h2>Local flying area &mdash; within 50 km</h2>
+    <span class="hint">for circuit &amp; local training flights</span>
+  </div>
+  <div class="local" id="localbox"><div class="miss">Loading local area&hellip;</div></div>
+
+  <div class="section-h" style="margin-top:16px">
     <h2>Vertical profile &mdash; surface to 10,000 ft</h2>
     <span class="hint">aerodrome <select id="profileSite"></select></span>
   </div>
@@ -175,6 +200,7 @@ td .chip{display:inline-block;min-width:44px;padding:3px 7px;border-radius:6px;f
           <th data-k="base">Cloud base</th>
           <th data-k="frz">Frz lvl</th>
           <th data-k="turb">Turb</th>
+          <th data-k="metar">METAR</th>
           <th data-k="da">Dens alt</th>
         </tr>
       </thead>
@@ -216,7 +242,7 @@ td .chip{display:inline-block;min-width:44px;padding:3px 7px;border-radius:6px;f
   </div>
 
   <div class="foot">
-    <b>Not an official weather brief.</b> This is a planning aid built on <b>Open-Meteo</b> model forecast data (updates hourly), not on official observations. Always obtain a formal pre-flight briefing from <b>PreFlight</b> or <b>MetFlight GA / IFIS</b>, and check current <b>METAR/TAF, ARFOR, SIGMET, GRAFOR and NOTAMs</b> before every flight. Cloud base is <i>estimated</i> from model cloud cover at pressure levels (the lowest layer with 25%+ cover between 950 and 700 hPa) and will differ from real reported ceilings; very low stratus or fog below ~1,000 ft may not be captured &mdash; always confirm against the METAR/TAF. Runway data is indicative &mdash; verify headings, lengths and surfaces against the <b>AIP New Zealand</b>. Crosswind uses the most favourable listed runway. Density altitude and freezing level are model estimates. Fly to your own personal minimums. &copy; Built for South Canterbury Aero Club use.
+    <b>Not an official weather brief.</b> This is a planning aid built on <b>Open-Meteo</b> model forecast data (updates hourly), not on official observations. Always obtain a formal pre-flight briefing from <b>PreFlight</b> or <b>MetFlight GA / IFIS</b>, and check current <b>METAR/TAF, ARFOR, SIGMET, GRAFOR and NOTAMs</b> before every flight. Cloud base is <i>estimated</i> from model cloud cover at pressure levels (the lowest layer with 25%+ cover between 950 and 700 hPa) and will differ from real reported ceilings; very low stratus or fog below ~1,000 ft may not be captured &mdash; always confirm against the METAR/TAF. Runway data is indicative &mdash; verify headings, lengths and surfaces against the <b>AIP New Zealand</b>. Crosswind uses the most favourable listed runway. Density altitude and freezing level are model estimates. The <b>METAR</b> column and home-station observation are the genuine official reading from <b>aviationweather.gov</b> where a station reports to the international network; most South Island fields, including Timaru, do not, and will show no live METAR rather than a guess. The local flying area uses approximate reference points, not aerodromes. Fly to your own personal minimums. &copy; Built for South Canterbury Aero Club use.
   </div>
 </div>
 
@@ -248,9 +274,20 @@ const HRLY = "visibility,freezing_level_height,wind_speed_700hPa,wind_direction_
   +",geopotential_height_950hPa,geopotential_height_900hPa,geopotential_height_850hPa,geopotential_height_800hPa,geopotential_height_700hPa";
 const PLEVELS=[950,900,850,800,700];
 
-function buildURL(){
-  const lats = AERODROMES.map(a=>a.lat).join(",");
-  const lons = AERODROMES.map(a=>a.lon).join(",");
+// Local training area: real, well-known reference points around Timaru, each
+// within ~50 km, precisely at the stated bearing/distance from NZTU (haversine).
+// Elevations are approximate plains/downs figures for density-altitude purposes.
+const LOCAL_POINTS = [
+  {icao:"NZTU",   name:"Timaru (Richard Pearse)", lat:-44.3028, lon:171.2225, elev:89,  rwys:[20,110], home:true, distKm:0,  bearing:"Home field"},
+  {icao:"LOC-N",  name:"Temuka area",             lat:-44.1699, lon:171.1898, elev:100, rwys:[],       distKm:15, bearing:"N"},
+  {icao:"LOC-W",  name:"Pleasant Point area",     lat:-44.2729, lon:170.9875, elev:250, rwys:[],       distKm:19, bearing:"W"},
+  {icao:"LOC-S",  name:"Waimate area",            lat:-44.6762, lon:171.0817, elev:200, rwys:[],       distKm:43, bearing:"S"},
+  {icao:"LOC-NW", name:"Geraldine area",          lat:-43.9766, lon:171.0112, elev:300, rwys:[],       distKm:40, bearing:"NW"}
+];
+
+function buildURL(list){
+  const lats = list.map(a=>a.lat).join(",");
+  const lons = list.map(a=>a.lon).join(",");
   return "https://api.open-meteo.com/v1/forecast"
     + "?latitude="+lats+"&longitude="+lons
     + "&current="+CUR
@@ -321,6 +358,44 @@ function clsDA(d,elev){ if(d==null)return -1; const over=d-elev; return over>400
 const CLS=["g","a","r"];
 function chip(cls,txt){ if(cls<0) return '<span class="chip n">&mdash;</span>'; return '<span class="chip '+CLS[cls]+'">'+txt+'</span>'; }
 
+/* ===== Live METAR (official aviationweather.gov, fetched server-side via a
+   Netlify Function so the browser never hits the CORS block). Only a handful
+   of NZ stations are on the international exchange this mirrors, so most
+   aerodromes here, including Timaru, will show "no live METAR" honestly
+   rather than guessing. Fails silently if the function isn't deployed yet
+   (e.g. the site is still on drag-and-drop hosting), so nothing breaks. ===== */
+let METAR_MAP={};
+const FLTCAT_CLASS={VFR:"g",MVFR:"a",IFR:"r",LIFR:"r"};
+function metarChip(icao){
+  const m=METAR_MAP[icao];
+  if(!m) return '<span class="chip n" title="No live METAR for this station">&mdash;</span>';
+  const cls=FLTCAT_CLASS[m.fltCat]||"n";
+  return '<span class="chip '+cls+'" title="'+m.raw.replace(/"/g,"&quot;")+'">'+(m.fltCat||"OBS")+'</span>';
+}
+function metarLine(icao){
+  const m=METAR_MAP[icao];
+  if(m){
+    const cls=FLTCAT_CLASS[m.fltCat]||"n";
+    return '<div class="metarline"><span class="chip '+cls+'">'+(m.fltCat||"OBS")+'</span>'
+      +'<code>'+m.raw+'</code></div>';
+  }
+  return '<div class="metarline miss2">No live METAR reported for '+icao+' (not on the international network) &mdash; check <a href="https://gopreflight.co.nz/app?mode=aero" target="_blank" rel="noopener">PreFlight</a> or <a href="https://metar-taf.com/?c='+icao+'" target="_blank" rel="noopener">metar-taf.com</a>.</div>';
+}
+async function fetchMetar(){
+  try{
+    const ids=AERODROMES.map(a=>a.icao).join(",");
+    const r=await fetch("/api/metar?ids="+encodeURIComponent(ids),{cache:"no-store"});
+    if(!r.ok) return; // function not deployed yet, or upstream hiccup — degrade silently
+    const j=await r.json();
+    const list=Array.isArray(j.data)?j.data:(Array.isArray(j)?j:[]);
+    const map={};
+    list.forEach(o=>{ if(o&&o.icaoId) map[o.icaoId]={raw:o.rawOb||"", fltCat:o.fltCat||null, obsTime:o.reportTime||null}; });
+    METAR_MAP=map;
+    // re-paint the bits that show METAR using data already on hand, no refetch of forecasts
+    if(ROWS && ROWS.length){ const home=ROWS.find(x=>x.a.home); if(home) renderHome(home); renderTable(); }
+  }catch(e){ /* no network, or CORS/parse issue — degrade silently, rest of the page is unaffected */ }
+}
+
 function hourIndex(times){
   const now=Date.now();
   let bi=0,bd=1e15;
@@ -386,6 +461,7 @@ function renderHome(r){
   let html='<div class="home"><div class="hh"><div><h2>'+a.name+' &mdash; '+a.icao+'</h2>'
     +'<div class="loc">Home base &middot; elev '+a.elev+' ft &middot; runways '+a.rwys.map(h=>String(Math.round(h/10)).padStart(2,"0")).join(", ")+'</div></div>'
     +'<span class="status-pill" style="background:'+pillBg+';color:'+pillFg+'">'+pillTx+'</span></div>'
+    +metarLine(a.icao)
     +'<div class="hgrid">';
   cells.forEach(c=>{
     const fc = c.f===1?"flag-amber":c.f===2?"flag-red":"";
@@ -418,7 +494,8 @@ function renderTable(){
       +'<td>'+chip(clsBase(r.base), r.baseNone?'&gt;9k':(r.base/1000).toFixed(1)+'k')+'</td>'
       +'<td>'+chip(clsFrz(r.frzFt), r.frzFt!=null?(r.frzFt/1000).toFixed(1)+'k':'')+'</td>'
       +'<td>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb):'')+'</td>'
-      +'<td>'+chip(clsDA(r.da,a.elev), r.da!=null?(r.da/1000).toFixed(1)+'k':'')+'</td>';
+      +'<td>'+chip(clsDA(r.da,a.elev), r.da!=null?(r.da/1000).toFixed(1)+'k':'')+'</td>'
+      +'<td>'+metarChip(a.icao)+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -434,6 +511,7 @@ function sortVal(r){
     case "frz": return r.frzFt;
     case "turb": return r.turb;
     case "da": return r.da?(r.da-r.a.elev):null;
+    case "metar": { const m=METAR_MAP[r.a.icao]; const rank={LIFR:0,IFR:1,MVFR:2,VFR:3}; return m?rank[m.fltCat]:9; }
     default: return -r.a.lat;
   }
 }
@@ -459,7 +537,7 @@ async function load(){
   const err=document.getElementById("errbanner"); err.classList.remove("show");
   document.getElementById("updated").textContent="Loading…";
   try{
-    const res=await fetch(buildURL(),{cache:"no-store"});
+    const res=await fetch(buildURL(AERODROMES),{cache:"no-store"});
     if(!res.ok) throw new Error("HTTP "+res.status);
     let data=await res.json();
     if(!Array.isArray(data)) data=[data];
@@ -476,6 +554,47 @@ async function load(){
     document.getElementById("updated").textContent="Offline";
   }
 }
+
+/* ===== Local flying area: within 50 km of NZTU, go/no-go ===== */
+function renderLocal(rows){
+  const host=document.getElementById("localbox"); if(!host) return;
+  const worst=Math.max(...rows.map(r=>r.worst));
+  const pillBg={0:"var(--greenbg)",1:"var(--amberbg)",2:"var(--redbg)"}[worst];
+  const pillFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[worst];
+  const pillTx={0:"LOCAL FLYING GOOD",1:"LOCAL FLYING CAUTION",2:"LOCAL FLYING MARGINAL"}[worst];
+  let html='<div class="local-hd"><span class="local-pill" style="background:'+pillBg+';color:'+pillFg+'">'+pillTx+'</span>'
+    +'<span class="local-sub">worst case across the 50&nbsp;km training area, right now</span></div>';
+  html+='<div class="localgrid">';
+  rows.forEach(r=>{
+    const a=r.a;
+    const pBg={0:"var(--greenbg)",1:"var(--amberbg)",2:"var(--redbg)"}[r.worst];
+    const pFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[r.worst];
+    const pTx={0:"GO",1:"CAUTION",2:"NO-GO"}[r.worst];
+    html+='<div class="localcard">'
+      +'<div class="lc-top"><b>'+a.name+'</b><span class="lc-pill" style="background:'+pBg+';color:'+pFg+'">'+pTx+'</span></div>'
+      +'<div class="lc-dist">'+(a.home?"Home field":a.distKm+" km "+a.bearing+" of NZTU")+'</div>'
+      +'<div class="lc-row"><span>Wind</span><b>'+(r.wind!=null?Math.round(r.wind)+" "+dirCard(r.wdir):"&mdash;")+'</b></div>'
+      +'<div class="lc-row"><span>Gust</span>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust)+" kt":"")+'</div>'
+      +'<div class="lc-row"><span>Vis</span>'+chip(clsVis(r.vis), r.vis!=null?r.vis.toFixed(0)+" km":"")+'</div>'
+      +'<div class="lc-row"><span>Cloud base</span>'+chip(clsBase(r.base), r.baseNone?"&gt;9k":(r.base/1000).toFixed(1)+"k ft")+'</div>'
+      +'<div class="lc-row"><span>Turb</span>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb)+" kt":"")+'</div>'
+      +'</div>';
+  });
+  html+='</div><div class="charts-note" style="margin-top:8px">Reference points, not aerodromes &mdash; approximate elevation used for cloud base and density altitude. A nor&rsquo;west arch sitting over the foothills (Geraldine/Pleasant Point) can look very different from the coast even on a fine Timaru day.</div>';
+  host.innerHTML=html;
+}
+async function fetchLocal(){
+  const host=document.getElementById("localbox"); if(!host) return;
+  try{
+    const r=await fetch(buildURL(LOCAL_POINTS),{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    let d=await r.json(); if(!Array.isArray(d)) d=[d];
+    renderLocal(d.map((loc,i)=>compute(LOCAL_POINTS[i],loc)));
+  }catch(e){
+    host.innerHTML='<span class="miss">Couldn&rsquo;t load the local area (' +e.message+'). Try Refresh.</span>';
+  }
+}
+
 /* ===== Vertical profile (surface to 10,000 ft AGL) ===== */
 const PROF_LEVELS=[1000,950,925,900,850,800,700];
 function profURL(lat,lon){
@@ -487,6 +606,29 @@ function profURL(lat,lon){
     +"&wind_speed_unit=kn&timezone=Pacific%2FAuckland&forecast_days=1";
 }
 function windColor(s){ return s>28?"#c0392b":s>15?"#c9820a":"#1f9d55"; }
+
+// A puffy cloud silhouette made of overlapping circles, grouped so the group's
+// own opacity composites once (no dark seams where circles overlap).
+function cloudPuffGroup(x0,x1,yTop,yBot,coverPct){
+  const w=Math.max(6,x1-x0), h=Math.max(8,yBot-yTop);
+  const seed=(coverPct*7+ x0*1.3)%97;
+  const rnd=k=>{ const v=Math.sin(seed+k*12.9898)*43758.5453; return v-Math.floor(v); };
+  const n=Math.max(3,Math.min(6,Math.round(w/26)));
+  const baseR=Math.min(h*0.6, w/(n*1.15));
+  const rowY=yBot-baseR*0.8;
+  const op=Math.min(0.88,0.3+coverPct/100*0.55).toFixed(2);
+  let base='', puffs='', shine='';
+  // flat shadowed base, slightly darker blue-grey
+  base+='<ellipse cx="'+((x0+x1)/2).toFixed(1)+'" cy="'+(rowY+baseR*0.3).toFixed(1)+'" rx="'+(w*0.47).toFixed(1)+'" ry="'+(baseR*0.6).toFixed(1)+'" fill="#7c8797"/>';
+  for(let i=0;i<n;i++){
+    const cx=x0+baseR*0.85+i*((w-baseR*1.7)/Math.max(1,n-1));
+    const rr=baseR*(0.6+0.42*rnd(i));
+    const cy=rowY-rr*(0.3+0.55*rnd(i+9));
+    puffs+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+rr.toFixed(1)+'" fill="#a9b4c2"/>';
+    if(i%2===0) shine+='<circle cx="'+(cx-rr*0.28).toFixed(1)+'" cy="'+(cy-rr*0.32).toFixed(1)+'" r="'+(rr*0.36).toFixed(1)+'" fill="#e8edf3"/>';
+  }
+  return '<g stroke="#5f6b7a" stroke-width="0.5" stroke-opacity="0.3" opacity="'+op+'">'+base+puffs+shine+'</g>';
+}
 
 function renderProfile(a, layers, frzAGL){
   const W=540,top=30,bot=384, cX=44,cW=138, wX=190,wW=134, tX=332,tW=196;
@@ -503,7 +645,7 @@ function renderProfile(a, layers, frzAGL){
   for(let i=0;i<layers.length-1;i++){ const c1=layers[i].cc,c2=layers[i+1].cc; if(c1==null&&c2==null) continue;
     const cov=(c1==null)?c2:(c2==null)?c1:(c1+c2)/2; if(cov<8) continue;
     const yTt=yOf(layers[i+1].agl), yB=yOf(layers[i].agl);
-    s+='<rect x="'+cX+'" y="'+yTt+'" width="'+cW+'" height="'+Math.max(1,yB-yTt).toFixed(1)+'" fill="#5c6b7a" opacity="'+Math.min(0.72,cov/100*0.8).toFixed(2)+'"/>'; }
+    s+=cloudPuffGroup(cX,cX+cW,yTt,yB,cov); }
   const lowC=layers.find(l=>l.cc>=40&&l.agl>0);
   if(lowC) s+='<text x="'+(cX+5)+'" y="'+(yOf(lowC.agl)-3)+'" font-size="10" fill="#16202c">'+coverWord(lowC.cc)+' '+lowC.cc+'%</text>';
   else if(!layers.some(l=>l.cc>=25)) s+='<text x="'+(cX+cW/2)+'" y="'+yOf(1600)+'" text-anchor="middle" font-size="10" fill="#8b97a3">mostly clear</text>';
@@ -573,8 +715,11 @@ function initProfile(){
 
 document.getElementById("reload").addEventListener("click",load);
 document.getElementById("reload").addEventListener("click",initProfile);
-load();
+document.getElementById("reload").addEventListener("click",fetchLocal);
+document.getElementById("reload").addEventListener("click",fetchMetar);
+load().then(fetchMetar);
 initProfile();
+fetchLocal();
 </script>
 
 <script>
