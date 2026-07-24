@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>South Canterbury Flying Conditions</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%230d3b66%27/%3E%3Cpath d=%27M32 8 L52 40 L32 33 L12 40 Z%27 fill=%27%23ffffff%27/%3E%3Ccircle cx=%2732%27 cy=%2748%27 r=%274%27 fill=%27%231f9d55%27/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#16202c; --muted:#5c6b7a; --line:#e2e8f0;
+  --home:#0d3b66; --accent:#1763a6;
+  --green:#1f9d55; --greenbg:#e5f6ec;
+  --amber:#c9820a; --amberbg:#fdf3df;
+  --red:#c0392b; --redbg:#fbe7e4;
+  --grey:#8b97a3; --greybg:#eef1f4;
+  --shadow:0 1px 3px rgba(16,32,44,.08),0 1px 2px rgba(16,32,44,.04);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.4;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:6px}
+h1{font-size:22px;margin:0;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;
+  padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+button.btn:hover{border-color:var(--accent);color:var(--accent)}
+button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.btn.primary:hover{background:#12507f;color:#fff}
+.updated{font-size:12px;color:var(--muted)}
+.brief{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.brief a{font-size:12.5px;text-decoration:none;color:var(--accent);border:1px solid var(--line);
+  background:#fff;border-radius:20px;padding:6px 12px;font-weight:600}
+.brief a:hover{border-color:var(--accent);background:#f0f6fc}
+.brief a .off{color:var(--red)}
+.banner{margin:10px 0;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.banner.show{display:block}
+.banner.err{background:var(--redbg);color:#8a281c;border:1px solid #f0b7ae}
+.banner.wave{background:var(--amberbg);color:#7a5205;border:1px solid #eccf8f}
+
+.home{background:linear-gradient(160deg,#0d3b66,#12507f);color:#eaf2fa;border-radius:14px;
+  padding:18px 18px 14px;margin:14px 0 18px;box-shadow:var(--shadow)}
+.home .hh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px}
+.home h2{margin:0;font-size:18px;color:#fff}
+.home .loc{font-size:12.5px;color:#b9d2ea}
+.home .status-pill{font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:.4px}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.hcell{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 12px}
+.hcell .lab{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#a9c6e2}
+.hcell .val{font-size:20px;font-weight:700;margin-top:3px;color:#fff}
+.hcell .note{font-size:11.5px;color:#c3d8ec;margin-top:2px}
+.hcell.flag-amber{background:rgba(255,196,84,.16);border-color:rgba(255,196,84,.4)}
+.hcell.flag-red{background:rgba(255,120,100,.18);border-color:rgba(255,120,100,.45)}
+.rwytags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rwytag{font-size:11.5px;background:rgba(255,255,255,.12);border-radius:6px;padding:3px 7px}
+
+.section-h{display:flex;justify-content:space-between;align-items:center;margin:6px 2px 8px}
+.section-h h2{font-size:16px;margin:0}
+.hint{font-size:12px;color:var(--muted)}
+
+.tablewrap{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:9px 10px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{background:#f7f9fb;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+  cursor:pointer;user-select:none;position:sticky;top:0}
+th.name,td.name{text-align:left}
+td.name b{font-size:13.5px}
+td.name span{color:var(--muted);font-size:11.5px;display:block}
+tr.home-row td{background:#eef5fc}
+td .chip{display:inline-block;min-width:44px;padding:3px 7px;border-radius:6px;font-weight:700;font-size:12.5px}
+.g{background:var(--greenbg);color:var(--green)}
+.a{background:var(--amberbg);color:var(--amber)}
+.r{background:var(--redbg);color:var(--red)}
+.n{background:var(--greybg);color:var(--grey)}
+.statuscell b{padding:4px 10px;border-radius:20px;font-size:11.5px;letter-spacing:.4px}
+.legend{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:16px;box-shadow:var(--shadow)}
+.legend h3{margin:0 0 8px;font-size:14px}
+.legend table{font-size:12.5px}
+.legend td,.legend th{text-align:left;border-bottom:1px solid var(--line);padding:6px 8px}
+.legwrap{overflow-x:auto}
+.foot{font-size:11.5px;color:var(--muted);margin-top:18px;line-height:1.6}
+.foot b{color:var(--ink)}
+.loader{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+/* ---- vertical profile ---- */
+.profile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:6px 0 4px;box-shadow:var(--shadow)}
+.profile svg{width:100%;max-width:540px;height:auto;display:block;margin:0 auto}
+.pnotes{margin-top:10px;font-size:12.5px;color:var(--ink);line-height:1.5}
+.pnotes div{padding:3px 0 3px 16px;position:relative}
+.pnotes div:before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.plegend{font-size:11px;color:var(--muted);margin-top:8px}
+#profileSite{font-size:12.5px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font-weight:600}
+/* ---- 5-day outlook ---- */
+.outlook{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;margin-top:16px;box-shadow:var(--shadow)}
+.synopsis{font-size:14px;line-height:1.55;color:var(--ink)}
+.synopsis .lead{font-weight:600}
+.synopsis .patt{margin-top:6px;color:var(--ink)}
+.synopsis .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.4px;border-radius:6px;padding:2px 8px;margin-right:6px;vertical-align:middle}
+.tag.nw{background:var(--amberbg);color:var(--amber)} .tag.front{background:var(--redbg);color:var(--red)}
+.tag.change{background:#e7eefb;color:#2b5cad} .tag.settled{background:var(--greenbg);color:var(--green)}
+.daycards{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px}
+.daycard{border:1px solid var(--line);border-radius:10px;padding:9px 9px 10px;background:#fff}
+.daycard .dh{font-weight:700;font-size:12.5px}
+.daycard .dd{font-size:10.5px;color:var(--muted);margin-bottom:5px}
+.daycard .cond{font-size:12px;font-weight:600;margin:3px 0}
+.daycard .rowk{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;margin-top:2px}
+.daycard .rowk b{color:var(--ink);font-weight:600}
+.daycard .rate{height:5px;border-radius:3px;margin-top:8px}
+.rate.g{background:var(--green)} .rate.a{background:var(--amber)} .rate.r{background:var(--red)}
+.charts-h{display:flex;justify-content:space-between;align-items:baseline;margin:16px 2px 8px;flex-wrap:wrap;gap:6px}
+.charts-h h3{font-size:14px;margin:0}
+.charts-h .run{font-size:11.5px;color:var(--muted)}
+.charts-strip{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory}
+.chart-fr{flex:0 0 auto;text-align:center;scroll-snap-align:start}
+.chart-fr img{display:block;width:150px;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+.chart-fr .cap{font-size:10.5px;color:var(--muted);margin-top:3px}
+.charts-note{font-size:11px;color:var(--muted);margin-top:2px}
+.outlook .miss{font-size:12.5px;color:var(--muted)}
+@media(max-width:640px){
+  .hcell .val{font-size:18px}
+  th,td{padding:7px 6px;font-size:12px}
+  h1{font-size:19px}
+  .daycards{grid-template-columns:repeat(2,1fr)}
+  .chart-fr img{width:130px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>South Canterbury Flying Conditions</h1>
+      <div class="sub">VFR day planning for GA &mdash; student &amp; weekend flying, surface to 10,000 ft. Timaru (NZTU) &amp; South Island, tuned for C172 / PA-28</div>
+    </div>
+    <div class="controls">
+      <span class="updated" id="updated">Loading&hellip;</span>
+      <button class="btn primary" id="reload">&#x21bb; Refresh</button>
+    </div>
+  </header>
+
+  <div class="brief">
+    <a href="https://gopreflight.co.nz/app?mode=aero" target="_blank" rel="noopener">Official brief: PreFlight &#8599;</a>
+    <a href="https://ifis.airways.co.nz/" target="_blank" rel="noopener">MetFlight GA / IFIS &#8599;</a>
+    <a href="https://metar-taf.com/?c=NZTU" target="_blank" rel="noopener">METAR / TAF &#8599;</a>
+    <a href="https://www.metservice.com/rural/regions/canterbury" target="_blank" rel="noopener">MetService &#8599;</a>
+    <a href="https://www.scaeroclub.co.nz/timaru-airport-nztu" target="_blank" rel="noopener">NZTU airport info &#8599;</a>
+  </div>
+
+  <div class="banner err" id="errbanner"></div>
+  <div class="banner wave" id="wavebanner"></div>
+
+  <div id="homepanel"></div>
+
+  <div class="section-h" style="margin-top:16px">
+    <h2>Vertical profile &mdash; surface to 10,000 ft</h2>
+    <span class="hint">aerodrome <select id="profileSite"></select></span>
+  </div>
+  <div class="profile" id="profilebox"><div class="miss">Loading profile&hellip;</div></div>
+
+  <div class="section-h">
+    <h2>South Island cross-country</h2>
+    <span class="hint">Tap a column heading to sort &middot; north &rarr; south</span>
+  </div>
+  <div class="tablewrap">
+    <table id="xctable">
+      <thead>
+        <tr>
+          <th class="name" data-k="lat">Aerodrome</th>
+          <th data-k="status">Status</th>
+          <th data-k="wind">Wind</th>
+          <th data-k="gust">Gust</th>
+          <th data-k="xwind">X-wind</th>
+          <th data-k="vis">Vis</th>
+          <th data-k="base">Cloud base</th>
+          <th data-k="frz">Frz lvl</th>
+          <th data-k="turb">Turb</th>
+          <th data-k="da">Dens alt</th>
+        </tr>
+      </thead>
+      <tbody id="xtbody">
+        <tr><td colspan="10"><div class="loader">Fetching live weather&hellip;</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-h" style="margin-top:18px">
+    <h2>5-day South Island outlook</h2>
+    <span class="hint">auto-summary + MetVUW rain charts</span>
+  </div>
+  <div class="outlook" id="outlook">
+    <div class="synopsis" id="synopsis"><span class="miss">Building 5-day outlook&hellip;</span></div>
+    <div class="daycards" id="daycards"></div>
+    <div class="charts-h">
+      <h3>MetVUW South Island rain &amp; pressure &mdash; next 5 days</h3>
+      <span class="run" id="chartrun"></span>
+    </div>
+    <div class="charts-strip" id="chartstrip"><span class="miss">Loading charts&hellip;</span></div>
+    <div class="charts-note">6-hourly frames. Charts &copy; MetVUW (Victoria University of Wellington). <a href="https://www.metvuw.com/forecast/forecast.php?type=rain&amp;region=nzsi&amp;noofdays=5" target="_blank" rel="noopener">Open full MetVUW 5-day forecast &#8599;</a></div>
+  </div>
+
+  <div class="legend">
+    <h3>Thresholds (C172 / PA-28, VFR day) &mdash; green good, amber caution, red no-go</h3>
+    <div class="legwrap">
+    <table>
+      <tr><th>Factor</th><th>Green</th><th>Amber</th><th>Red</th><th>Why</th></tr>
+      <tr><td>Crosswind (best runway)</td><td>&le;10 kt</td><td>10&ndash;15 kt</td><td>&gt;15 kt</td><td>C172 max demo 15 kt; PA-28 ~17 kt</td></tr>
+      <tr><td>Wind gust</td><td>&le;20 kt</td><td>20&ndash;30 kt</td><td>&gt;30 kt</td><td>Gust handling, turbulence</td></tr>
+      <tr><td>Visibility</td><td>&ge;10 km</td><td>5&ndash;10 km</td><td>&lt;5 km</td><td>NZ VFR minimum is 5 km below 10,000 ft</td></tr>
+      <tr><td>Cloud base (est. AGL)</td><td>&ge;2500 ft</td><td>1200&ndash;2500 ft</td><td>&lt;1200 ft</td><td>Lowest model cloud layer (25%+) by altitude, 950&ndash;700 hPa</td></tr>
+      <tr><td>Freezing level</td><td>&ge;8000 ft</td><td>5000&ndash;8000 ft</td><td>&lt;5000 ft</td><td>Icing risk &amp; terrain clearance for XC</td></tr>
+      <tr><td>Turbulence (surface to 10k)</td><td>&lt;15 kt</td><td>15&ndash;28 kt</td><td>&gt;28 kt</td><td>Roughest of surface gusts and wind aloft; worse near terrain</td></tr>
+      <tr><td>Density altitude</td><td>&lt;+2000 ft over field</td><td>+2000&ndash;4000 ft</td><td>&gt;+4000 ft</td><td>Take-off &amp; climb performance</td></tr>
+    </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>Not an official weather brief.</b> This is a planning aid built on <b>Open-Meteo</b> model forecast data (updates hourly), not on official observations. Always obtain a formal pre-flight briefing from <b>PreFlight</b> or <b>MetFlight GA / IFIS</b>, and check current <b>METAR/TAF, ARFOR, SIGMET, GRAFOR and NOTAMs</b> before every flight. Cloud base is <i>estimated</i> from model cloud cover at pressure levels (the lowest layer with 25%+ cover between 950 and 700 hPa) and will differ from real reported ceilings; very low stratus or fog below ~1,000 ft may not be captured &mdash; always confirm against the METAR/TAF. Runway data is indicative &mdash; verify headings, lengths and surfaces against the <b>AIP New Zealand</b>. Crosswind uses the most favourable listed runway. Density altitude and freezing level are model estimates. Fly to your own personal minimums. &copy; Built for South Canterbury Aero Club use.
+  </div>
+</div>
+
+<script>
+const AERODROMES = [
+  {icao:"NZNS", name:"Nelson",            lat:-41.298,  lon:173.221, elev:17,   rwys:[20,110]},
+  {icao:"NZWB", name:"Woodbourne (Blenheim)", lat:-41.518, lon:173.870, elev:109, rwys:[60,180]},
+  {icao:"NZWS", name:"Westport",          lat:-41.738,  lon:171.581, elev:13,   rwys:[160]},
+  {icao:"NZKI", name:"Kaikoura",          lat:-42.425,  lon:173.605, elev:20,   rwys:[10]},
+  {icao:"NZHK", name:"Hokitika",          lat:-42.714,  lon:170.986, elev:146,  rwys:[30,210]},
+  {icao:"NZCH", name:"Christchurch",      lat:-43.489,  lon:172.532, elev:123,  rwys:[20,110]},
+  {icao:"NZAS", name:"Ashburton",         lat:-43.903,  lon:171.797, elev:298,  rwys:[160,60]},
+  {icao:"NZMC", name:"Mount Cook",        lat:-43.765,  lon:170.133, elev:2153, rwys:[130]},
+  {icao:"NZTL", name:"Lake Tekapo",       lat:-44.005,  lon:170.444, elev:2496, rwys:[110]},
+  {icao:"NZTU", name:"Timaru (Richard Pearse)", lat:-44.3028, lon:171.2225, elev:89, rwys:[20,110], home:true},
+  {icao:"NZOA", name:"Omarama",           lat:-44.487,  lon:169.985, elev:1381, rwys:[90]},
+  {icao:"NZOU", name:"Oamaru",            lat:-44.970,  lon:171.082, elev:99,   rwys:[30]},
+  {icao:"NZWF", name:"Wanaka",            lat:-44.722,  lon:169.246, elev:1142, rwys:[110]},
+  {icao:"NZQN", name:"Queenstown",        lat:-45.021,  lon:168.739, elev:1171, rwys:[50,140]},
+  {icao:"NZLX", name:"Alexandra",         lat:-45.212,  lon:169.373, elev:752,  rwys:[70]},
+  {icao:"NZMF", name:"Milford Sound",     lat:-44.673,  lon:167.923, elev:10,   rwys:[110]},
+  {icao:"NZDN", name:"Dunedin",           lat:-45.928,  lon:170.198, elev:4,    rwys:[30]},
+  {icao:"NZNV", name:"Invercargill",      lat:-46.412,  lon:168.313, elev:5,    rwys:[40,90,180]}
+];
+
+const CUR = "temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,weather_code,cloud_cover,surface_pressure,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m";
+const HRLY = "visibility,freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,cloud_cover_low"
+  +",cloud_cover_950hPa,cloud_cover_900hPa,cloud_cover_850hPa,cloud_cover_800hPa,cloud_cover_700hPa"
+  +",geopotential_height_950hPa,geopotential_height_900hPa,geopotential_height_850hPa,geopotential_height_800hPa,geopotential_height_700hPa";
+const PLEVELS=[950,900,850,800,700];
+
+function buildURL(){
+  const lats = AERODROMES.map(a=>a.lat).join(",");
+  const lons = AERODROMES.map(a=>a.lon).join(",");
+  return "https://api.open-meteo.com/v1/forecast"
+    + "?latitude="+lats+"&longitude="+lons
+    + "&current="+CUR
+    + "&hourly="+HRLY
+    + "&daily=sunrise,sunset"
+    + "&wind_speed_unit=kn&timezone=Pacific%2FAuckland&forecast_days=2";
+}
+
+const WCODE = {0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",
+  51:"Lt drizzle",53:"Drizzle",55:"Hvy drizzle",56:"Frz drizzle",57:"Frz drizzle",
+  61:"Lt rain",63:"Rain",65:"Hvy rain",66:"Frz rain",67:"Frz rain",
+  71:"Lt snow",73:"Snow",75:"Hvy snow",77:"Snow grains",
+  80:"Lt showers",81:"Showers",82:"Hvy showers",85:"Snow showers",86:"Snow showers",
+  95:"Thunderstorm",96:"Storm+hail",99:"Storm+hail"};
+
+function deg2(a){return ((a%360)+360)%360;}
+function angDiff(a,b){let d=Math.abs(deg2(a)-deg2(b));return d>180?360-d:d;}
+
+// best runway crosswind: min |sin(delta)| across runway lines; returns {xw, hw, rwy, tail}
+function crosswind(windDir, spd, rwys){
+  if(!rwys||!rwys.length||spd==null) return null;
+  let best=null;
+  rwys.forEach(h=>{
+    [h, deg2(h+180)].forEach(end=>{
+      const delta = angDiff(windDir, end);
+      const xw = Math.abs(spd*Math.sin(delta*Math.PI/180));
+      const hw = spd*Math.cos(delta*Math.PI/180); // +head, -tail
+      if(best===null || xw<best.xw-0.01 || (Math.abs(xw-best.xw)<0.5 && hw>best.hw)){
+        best={xw:xw, hw:hw, rwy:Math.round(end/10), tail:hw<0};
+      }
+    });
+  });
+  return best;
+}
+
+// Estimated cloud base / ceiling from model cloud layers by altitude (ft AGL).
+// Lowest pressure level above the field with >=25% cover (scattered or more).
+function estCeiling(loc, hi, elevFt){
+  const items=[];
+  for(const p of PLEVELS){
+    const cc=loc.hourly["cloud_cover_"+p+"hPa"], gh=loc.hourly["geopotential_height_"+p+"hPa"];
+    if(!cc||!gh) continue;
+    const cover=cc[hi], hm=gh[hi];
+    if(cover==null||hm==null) continue;
+    items.push({cover, aglFt: hm*3.281 - elevFt});
+  }
+  items.sort((a,b)=>a.aglFt-b.aglFt);
+  for(const it of items){ if(it.aglFt>=100 && it.cover>=25) return {base:Math.round(it.aglFt/100)*100, cover:it.cover}; }
+  return null; // no significant cloud in the sampled band
+}
+function coverWord(c){ return c<30?"few":c<60?"scattered":c<88?"broken":"overcast"; }
+function densAlt(elev, tempC, qnh){
+  const pa = elev + (1013.25 - qnh)*30;      // pressure altitude, ft
+  const isa = 15 - 1.98*(pa/1000);           // ISA temp at PA
+  return Math.round(pa + 120*(tempC - isa));
+}
+
+// classification helpers -> 0 green,1 amber,2 red,-1 n/a
+function clsXwind(x){ if(x==null)return -1; return x>15?2:x>10?1:0; }
+function clsGust(g){ if(g==null)return -1; return g>30?2:g>20?1:0; }
+function clsVis(v){ if(v==null)return -1; return v<5?2:v<10?1:0; }        // km
+function clsBase(b){ if(b==null)return -1; return b<1200?2:b<2500?1:0; }  // ft
+function clsFrz(f){ if(f==null)return -1; return f<5000?2:f<8000?1:0; }
+function clsWave(w){ if(w==null)return -1; return w>35?2:w>20?1:0; }
+function clsTurb(v){ if(v==null)return -1; return v>28?2:v>15?1:0; }   // rough-air potential, kt
+function turbWord(v){ return v>28?"Strong":v>15?"Moderate":"Light"; }
+function clsDA(d,elev){ if(d==null)return -1; const over=d-elev; return over>4000?2:over>2000?1:0; }
+const CLS=["g","a","r"];
+function chip(cls,txt){ if(cls<0) return '<span class="chip n">&mdash;</span>'; return '<span class="chip '+CLS[cls]+'">'+txt+'</span>'; }
+
+function hourIndex(times){
+  const now=Date.now();
+  let bi=0,bd=1e15;
+  for(let i=0;i<times.length;i++){const d=Math.abs(new Date(times[i]).getTime()-now);if(d<bd){bd=d;bi=i;}}
+  return bi;
+}
+function dirCard(d){const n=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];return n[Math.round(deg2(d)/22.5)%16];}
+function fmtTime(iso){try{return new Date(iso).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});}catch(e){return "--";}}
+
+function compute(a, loc){
+  const c=loc.current;
+  const hi=hourIndex(loc.hourly.time);
+  const vis = loc.hourly.visibility ? loc.hourly.visibility[hi] : null;      // metres
+  const visKm = vis!=null ? vis/1000 : null;
+  const frz = loc.hourly.freezing_level_height ? loc.hourly.freezing_level_height[hi] : null; // metres
+  const frzFt = frz!=null ? Math.round(frz*3.281) : null;
+  const w700 = loc.hourly.wind_speed_700hPa ? loc.hourly.wind_speed_700hPa[hi] : null;
+  const d700 = loc.hourly.wind_direction_700hPa ? loc.hourly.wind_direction_700hPa[hi] : null;
+  const wind = c.wind_speed_10m, gust=c.wind_gusts_10m, wdir=c.wind_direction_10m;
+  const xw = crosswind(wdir, wind, a.rwys);
+  const cl = estCeiling(loc, hi, a.elev);
+  const baseNone = !cl;
+  const base = cl ? cl.base : 9999;        // 9999 = no significant cloud in band (treat as high/clear)
+  const baseCover = cl ? cl.cover : 0;
+  const da = densAlt(a.elev, c.temperature_2m, c.pressure_msl);
+  const turbVal = Math.max(gust!=null?gust:0, w700!=null?w700:0); // rough air: worse of surface gust and wind aloft
+  const flags=[clsXwind(xw?xw.xw:null),clsGust(gust),clsVis(visKm),clsBase(base),clsFrz(frzFt),clsTurb(turbVal),clsDA(da,a.elev)];
+  const worst=Math.max(...flags.filter(f=>f>=0),0);
+  const sunrise=loc.daily && loc.daily.sunrise?loc.daily.sunrise[0]:null;
+  const sunset =loc.daily && loc.daily.sunset ?loc.daily.sunset[0]:null;
+  return {a,c,vis:visKm,frzFt,w700,d700,turb:turbVal,wind,gust,wdir,xw,base,baseCover,baseNone,da,flags,worst,sunrise,sunset,
+          wcode:c.weather_code, cloud:c.cloud_cover, temp:c.temperature_2m, dew:c.dew_point_2m};
+}
+
+function statusPill(w){
+  const map=[["GREEN","g"],["AMBER","a"],["RED","r"]];
+  const [t,cl]=map[w];
+  const bg={g:"var(--greenbg)",a:"var(--amberbg)",r:"var(--redbg)"}[cl];
+  const fg={g:"var(--green)",a:"var(--amber)",r:"var(--red)"}[cl];
+  return '<b style="background:'+bg+';color:'+fg+'">'+t+'</b>';
+}
+
+let ROWS=[], sortKey="lat", sortAsc=true;
+
+function renderHome(r){
+  const a=r.a;
+  const xwTxt = r.xw? (r.xw.xw.toFixed(0)+" kt RWY "+String(r.xw.rwy).padStart(2,"0")+(r.xw.tail?" (tail)":"")) : "&mdash;";
+  const cells=[
+    {lab:"Wind",val:(r.wind!=null?Math.round(r.wind)+" kt":"&mdash;"),note:(r.wdir!=null?dirCard(r.wdir)+" &middot; "+Math.round(r.wdir)+"&deg;":""),f:0},
+    {lab:"Gust",val:(r.gust!=null?Math.round(r.gust)+" kt":"&mdash;"),note:"",f:clsGust(r.gust)},
+    {lab:"Best crosswind",val:xwTxt,note:"across "+a.rwys.map(h=>String(Math.round(h/10)).padStart(2,"0")).join("/"),f:clsXwind(r.xw?r.xw.xw:null)},
+    {lab:"Visibility",val:(r.vis!=null?r.vis.toFixed(0)+" km":"&mdash;"),note:(WCODE[r.wcode]||""),f:clsVis(r.vis)},
+    {lab:"Cloud base ~",val:(r.baseNone?"&gt;9,000 ft":r.base.toLocaleString()+" ft"),note:(r.baseNone?"few / clear":coverWord(r.baseCover)+" ~"+r.baseCover+"%")+" &middot; est.",f:clsBase(r.base)},
+    {lab:"Freezing level",val:(r.frzFt!=null?r.frzFt.toLocaleString()+" ft":"&mdash;"),note:"",f:clsFrz(r.frzFt)},
+    {lab:"Turbulence &le;10k",val:(r.turb!=null?turbWord(r.turb)+" ~"+Math.round(r.turb)+" kt":"&mdash;"),note:"worse of surface gust &amp; wind aloft",f:clsTurb(r.turb)},
+    {lab:"Density alt",val:(r.da!=null?r.da.toLocaleString()+" ft":"&mdash;"),note:"field "+a.elev+" ft",f:clsDA(r.da,a.elev)},
+    {lab:"Daylight",val:(r.sunrise&&r.sunset?fmtTime(r.sunrise)+" &ndash; "+fmtTime(r.sunset):"&mdash;"),note:"sunrise &ndash; sunset (local)",f:0},
+    {lab:"Temp / dew",val:(r.temp!=null?Math.round(r.temp)+"&deg; / "+Math.round(r.dew)+"&deg;":"&mdash;"),note:"",f:0}
+  ];
+  const pillBg={0:"var(--greenbg)",1:"var(--amberbg)",2:"var(--redbg)"}[r.worst];
+  const pillFg={0:"var(--green)",1:"var(--amber)",2:"var(--red)"}[r.worst];
+  const pillTx={0:"GOOD",1:"CAUTION",2:"MARGINAL"}[r.worst];
+  let html='<div class="home"><div class="hh"><div><h2>'+a.name+' &mdash; '+a.icao+'</h2>'
+    +'<div class="loc">Home base &middot; elev '+a.elev+' ft &middot; runways '+a.rwys.map(h=>String(Math.round(h/10)).padStart(2,"0")).join(", ")+'</div></div>'
+    +'<span class="status-pill" style="background:'+pillBg+';color:'+pillFg+'">'+pillTx+'</span></div>'
+    +'<div class="hgrid">';
+  cells.forEach(c=>{
+    const fc = c.f===1?"flag-amber":c.f===2?"flag-red":"";
+    html+='<div class="hcell '+fc+'"><div class="lab">'+c.lab+'</div><div class="val">'+c.val+'</div>'
+      +(c.note?'<div class="note">'+c.note+'</div>':'')+'</div>';
+  });
+  html+='</div></div>';
+  document.getElementById("homepanel").innerHTML=html;
+}
+
+function renderTable(){
+  const rows=ROWS.slice().sort((x,y)=>{
+    let vx=sortVal(x),vy=sortVal(y);
+    if(vx==null)vx=1e9; if(vy==null)vy=1e9;
+    return sortAsc?vx-vy:vy-vx;
+  });
+  const tb=document.getElementById("xtbody"); tb.innerHTML="";
+  rows.forEach(r=>{
+    const a=r.a;
+    const tr=document.createElement("tr");
+    if(a.home) tr.className="home-row";
+    const xwTxt = r.xw? r.xw.xw.toFixed(0)+"<small> R"+String(r.xw.rwy).padStart(2,"0")+"</small>" : null;
+    tr.innerHTML =
+      '<td class="name"><b>'+a.name+'</b><span>'+a.icao+' &middot; '+a.elev+' ft</span></td>'
+      +'<td class="statuscell">'+statusPill(r.worst)+'</td>'
+      +'<td>'+(r.wind!=null?Math.round(r.wind)+'<small> '+(r.wdir!=null?dirCard(r.wdir):'')+'</small>':'&mdash;')+'</td>'
+      +'<td>'+chip(clsGust(r.gust), r.gust!=null?Math.round(r.gust):'')+'</td>'
+      +'<td>'+chip(clsXwind(r.xw?r.xw.xw:null), xwTxt||'')+'</td>'
+      +'<td>'+chip(clsVis(r.vis), r.vis!=null?r.vis.toFixed(0)+' km':'')+'</td>'
+      +'<td>'+chip(clsBase(r.base), r.baseNone?'&gt;9k':(r.base/1000).toFixed(1)+'k')+'</td>'
+      +'<td>'+chip(clsFrz(r.frzFt), r.frzFt!=null?(r.frzFt/1000).toFixed(1)+'k':'')+'</td>'
+      +'<td>'+chip(clsTurb(r.turb), r.turb!=null?Math.round(r.turb):'')+'</td>'
+      +'<td>'+chip(clsDA(r.da,a.elev), r.da!=null?(r.da/1000).toFixed(1)+'k':'')+'</td>';
+    tb.appendChild(tr);
+  });
+}
+function sortVal(r){
+  switch(sortKey){
+    case "lat": return -r.a.lat;            // north first
+    case "status": return r.worst;
+    case "wind": return r.wind;
+    case "gust": return r.gust;
+    case "xwind": return r.xw?r.xw.xw:null;
+    case "vis": return r.vis;
+    case "base": return r.base;
+    case "frz": return r.frzFt;
+    case "turb": return r.turb;
+    case "da": return r.da?(r.da-r.a.elev):null;
+    default: return -r.a.lat;
+  }
+}
+document.querySelectorAll("#xctable th").forEach(th=>{
+  th.addEventListener("click",()=>{
+    const k=th.dataset.k;
+    if(sortKey===k){sortAsc=!sortAsc;}else{sortKey=k;sortAsc=(k==="lat");}
+    renderTable();
+  });
+});
+
+function waveCheck(){
+  const bad=ROWS.filter(r=>r.w700!=null && r.w700>25 && r.d700!=null && r.d700>=270 && r.d700<=340);
+  const b=document.getElementById("wavebanner");
+  if(bad.length){
+    const mx=Math.max(...bad.map(r=>r.w700));
+    b.innerHTML="&#9888; <b>Strong nor&rsquo;wester aloft.</b> Winds near the top of the band reach "+Math.round(mx)+" kt from the NW &mdash; expect turbulence and rough handling through the flying levels, worst near and in the lee of the ranges. Not a day for early solos.";
+    b.classList.add("show");
+  }else{b.classList.remove("show");}
+}
+
+async function load(){
+  const err=document.getElementById("errbanner"); err.classList.remove("show");
+  document.getElementById("updated").textContent="Loading…";
+  try{
+    const res=await fetch(buildURL(),{cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    let data=await res.json();
+    if(!Array.isArray(data)) data=[data];
+    ROWS = data.map((loc,i)=>compute(AERODROMES[i], loc));
+    const home=ROWS.find(r=>r.a.home);
+    if(home) renderHome(home);
+    renderTable();
+    waveCheck();
+    const now=new Date();
+    document.getElementById("updated").textContent="Updated "+now.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+" NZ";
+  }catch(e){
+    err.innerHTML="&#9888; Couldn't load live weather ("+e.message+"). Check your internet connection and press Refresh. You can still use the official briefing links above.";
+    err.classList.add("show");
+    document.getElementById("updated").textContent="Offline";
+  }
+}
+/* ===== Vertical profile (surface to 10,000 ft AGL) ===== */
+const PROF_LEVELS=[1000,950,925,900,850,800,700];
+function profURL(lat,lon){
+  const f=[];
+  for(const p of PROF_LEVELS) f.push("temperature_"+p+"hPa","wind_speed_"+p+"hPa","wind_direction_"+p+"hPa","cloud_cover_"+p+"hPa","geopotential_height_"+p+"hPa");
+  return "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon
+    +"&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover"
+    +"&hourly=freezing_level_height,"+f.join(",")
+    +"&wind_speed_unit=kn&timezone=Pacific%2FAuckland&forecast_days=1";
+}
+function windColor(s){ return s>28?"#c0392b":s>15?"#c9820a":"#1f9d55"; }
+
+function renderProfile(a, layers, frzAGL){
+  const W=540,top=30,bot=384, cX=44,cW=138, wX=190,wW=134, tX=332,tW=196;
+  const yOf=agl=>bot-(Math.min(Math.max(agl,0),10000)/10000)*(bot-top);
+  const xT=t=>tX+((Math.min(Math.max(t,-20),25)+20)/45)*tW;
+  let s='<svg viewBox="0 0 '+W+' 404" xmlns="http://www.w3.org/2000/svg">';
+  s+='<text x="34" y="18" text-anchor="end" font-size="10" fill="#5c6b7a">ft AGL</text>';
+  s+='<text x="'+(cX+cW/2)+'" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0d3b66">Cloud</text>';
+  s+='<text x="'+(wX+wW/2)+'" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0d3b66">Wind</text>';
+  s+='<text x="'+(tX+tW/2)+'" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0d3b66">Temp &#176;C</text>';
+  [0,2000,4000,6000,8000,10000].forEach(h=>{const yy=yOf(h);
+    s+='<line x1="42" y1="'+yy+'" x2="'+(tX+tW)+'" y2="'+yy+'" stroke="#eef1f4"/>';
+    s+='<text x="34" y="'+(yy+3)+'" text-anchor="end" font-size="10" fill="#8b97a3">'+(h===0?"0":(h/1000)+"k")+'</text>';});
+  for(let i=0;i<layers.length-1;i++){ const c1=layers[i].cc,c2=layers[i+1].cc; if(c1==null&&c2==null) continue;
+    const cov=(c1==null)?c2:(c2==null)?c1:(c1+c2)/2; if(cov<8) continue;
+    const yTt=yOf(layers[i+1].agl), yB=yOf(layers[i].agl);
+    s+='<rect x="'+cX+'" y="'+yTt+'" width="'+cW+'" height="'+Math.max(1,yB-yTt).toFixed(1)+'" fill="#5c6b7a" opacity="'+Math.min(0.72,cov/100*0.8).toFixed(2)+'"/>'; }
+  const lowC=layers.find(l=>l.cc>=40&&l.agl>0);
+  if(lowC) s+='<text x="'+(cX+5)+'" y="'+(yOf(lowC.agl)-3)+'" font-size="10" fill="#16202c">'+coverWord(lowC.cc)+' '+lowC.cc+'%</text>';
+  else if(!layers.some(l=>l.cc>=25)) s+='<text x="'+(cX+cW/2)+'" y="'+yOf(1600)+'" text-anchor="middle" font-size="10" fill="#8b97a3">mostly clear</text>';
+  if(frzAGL>0&&frzAGL<10000){const yy=yOf(frzAGL);
+    s+='<line x1="42" y1="'+yy+'" x2="'+(tX+tW)+'" y2="'+yy+'" stroke="#1763a6" stroke-width="1.2" stroke-dasharray="4 3"/>';
+    s+='<text x="'+(tX+tW)+'" y="'+(yy-3)+'" text-anchor="end" font-size="9.5" fill="#1763a6">0&#176;C ~'+frzAGL.toLocaleString()+' ft</text>';}
+  const wc=wX+wW/2; let lastLbl=1e9;
+  layers.forEach(l=>{ if(l.ws==null||l.wd==null) return; const yy=yOf(l.agl), col=windColor(l.ws);
+    s+='<g transform="rotate('+((l.wd+180)%360).toFixed(0)+' '+wc+' '+yy.toFixed(1)+')">'
+      +'<line x1="'+wc+'" y1="'+(yy+8).toFixed(1)+'" x2="'+wc+'" y2="'+(yy-8).toFixed(1)+'" stroke="'+col+'" stroke-width="2"/>'
+      +'<path d="M'+(wc-3.5)+' '+(yy-4).toFixed(1)+' L'+wc+' '+(yy-9).toFixed(1)+' L'+(wc+3.5)+' '+(yy-4).toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="2"/></g>';
+    if(Math.abs(yy-lastLbl)>=12){ lastLbl=yy;
+      s+='<text x="'+(wX+2)+'" y="'+(yy+3.5).toFixed(1)+'" font-size="10" fill="#5c6b7a">'+dirCard(l.wd)+'</text>';
+      s+='<text x="'+(wX+wW-2)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="10.5" font-weight="700" fill="'+col+'">'+l.ws+'</text>'; } });
+  const tp=layers.filter(l=>l.t!=null);
+  if(tp.length){
+    s+='<line x1="'+xT(0).toFixed(1)+'" y1="'+top+'" x2="'+xT(0).toFixed(1)+'" y2="'+bot+'" stroke="#c9d3de" stroke-dasharray="3 3"/>';
+    s+='<polyline points="'+tp.map(l=>xT(l.t).toFixed(1)+','+yOf(l.agl).toFixed(1)).join(" ")+'" fill="none" stroke="#c0392b" stroke-width="2"/>';
+    tp.forEach((l,i)=>{ s+='<circle cx="'+xT(l.t).toFixed(1)+'" cy="'+yOf(l.agl).toFixed(1)+'" r="2.2" fill="#c0392b"/>';
+      if(i===0||i===tp.length-1) s+='<text x="'+(xT(l.t)+5).toFixed(1)+'" y="'+(yOf(l.agl)+3.5).toFixed(1)+'" font-size="9.5" fill="#c0392b">'+Math.round(l.t)+'&#176;</text>'; }); }
+  s+='</svg>';
+  const notes=[];
+  if(frzAGL<=0) notes.push("Freezing level at the surface. Ice, frost and carburettor icing risk.");
+  else if(frzAGL<10000) notes.push("Freezing level about "+frzAGL.toLocaleString()+" ft. Airframe and carb icing risk in cloud above it.");
+  else notes.push("Freezing level above 10,000 ft, so little icing risk in your band.");
+  let sh=null,shm=0;
+  for(let i=0;i<layers.length-1;i++){ if(layers[i].ws==null||layers[i+1].ws==null) continue;
+    const dv=Math.abs(layers[i+1].ws-layers[i].ws), dd=angDiff(layers[i].wd,layers[i+1].wd), m=dv+dd/5;
+    if(m>shm && (dv>=15||dd>=45)){shm=m;sh={a:layers[i],b:layers[i+1]};} }
+  if(sh) notes.push("Wind change between "+sh.a.agl.toLocaleString()+" and "+sh.b.agl.toLocaleString()+" ft ("+dirCard(sh.a.wd)+" "+sh.a.ws+" to "+dirCard(sh.b.wd)+" "+sh.b.ws+" kt). Expect a bump climbing through.");
+  for(let i=0;i<layers.length-1;i++){ if(layers[i].t!=null&&layers[i+1].t!=null&&layers[i].agl>0&&layers[i+1].t-layers[i].t>0.6){ notes.push("Temperature inversion near "+layers[i].agl.toLocaleString()+" ft. Smooth air, but haze or low cloud can sit under it."); break; } }
+  const mx=layers.reduce((p,l)=>(l.ws!=null&&(!p||l.ws>p.ws))?l:p,null);
+  if(mx) notes.push("Strongest wind about "+mx.ws+" kt from the "+dirCard(mx.wd)+" near "+(mx.agl===0?"the surface":mx.agl.toLocaleString()+" ft")+".");
+  return '<div style="font-size:12.5px;color:#5c6b7a;margin-bottom:6px">'+a.name+' ('+a.icao+') &middot; field '+a.elev+' ft &middot; now</div>'+s
+    +'<div class="pnotes">'+notes.map(n=>'<div>'+n+'</div>').join("")+'</div>'
+    +'<div class="plegend">Arrows fly with the wind; colour shows speed (green calm, amber moderate, red strong). Cloud shading shows model cloud by height. Model guidance, not a real sounding &mdash; confirm on the aerodrome forecast.</div>';
+}
+
+async function fetchProfile(icao){
+  const a=AERODROMES.find(x=>x.icao===icao)||AERODROMES.find(x=>x.home)||AERODROMES[0];
+  const host=document.getElementById("profilebox"); if(!host) return;
+  host.innerHTML='<div class="miss">Loading profile&hellip;</div>';
+  try{
+    const r=await fetch(profURL(a.lat,a.lon),{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    const hi=hourIndex(d.hourly.time);
+    const layers=[{agl:0,t:d.current.temperature_2m,ws:Math.round(d.current.wind_speed_10m),wd:d.current.wind_direction_10m,cc:null}]; // surface: total cloud is column, not a base, so exclude from banding
+    for(const p of PROF_LEVELS){
+      const gh=d.hourly["geopotential_height_"+p+"hPa"]; if(!gh) continue; const hm=gh[hi]; if(hm==null) continue;
+      const agl=hm*3.281-a.elev; if(agl<150||agl>10500) continue;
+      layers.push({agl:Math.round(agl),t:d.hourly["temperature_"+p+"hPa"][hi],ws:Math.round(d.hourly["wind_speed_"+p+"hPa"][hi]),wd:d.hourly["wind_direction_"+p+"hPa"][hi],cc:d.hourly["cloud_cover_"+p+"hPa"][hi]});
+    }
+    layers.sort((x,y)=>x.agl-y.agl);
+    const frzAGL=Math.round(d.hourly.freezing_level_height[hi]*3.281-a.elev);
+    host.innerHTML=renderProfile(a,layers,frzAGL);
+  }catch(e){ host.innerHTML='<div class="miss">Couldn&rsquo;t load the profile ('+e.message+'). Try Refresh.</div>'; }
+}
+function initProfile(){
+  const sel=document.getElementById("profileSite"); if(!sel) return;
+  if(!sel.options.length){
+    sel.innerHTML=AERODROMES.map(a=>'<option value="'+a.icao+'"'+(a.home?' selected':'')+'>'+a.name+' ('+a.icao+')</option>').join("");
+    sel.addEventListener("change",()=>fetchProfile(sel.value));
+  }
+  fetchProfile(sel.value||((AERODROMES.find(a=>a.home)||AERODROMES[0]).icao));
+}
+
+document.getElementById("reload").addEventListener("click",load);
+document.getElementById("reload").addEventListener("click",initProfile);
+load();
+initProfile();
+</script>
+
+<script>
+/* ===== 5-day South Island outlook: live synopsis + MetVUW charts ===== */
+const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// representative points: east (Timaru), west (Hokitika), interior (Queenstown)
+const OUT_URL="https://api.open-meteo.com/v1/forecast"
+  +"?latitude=-44.30,-42.71,-45.02&longitude=171.22,170.99,168.74"
+  +"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,wind_direction_10m_dominant"
+  +"&hourly=wind_speed_700hPa,wind_direction_700hPa"
+  +"&wind_speed_unit=kn&timezone=Pacific%2FAuckland&forecast_days=5";
+
+function partOfDate(s){const p=s.split("-").map(Number);return new Date(p[0],p[1]-1,p[2]);}
+function dcard16(d){const n=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];return n[Math.round(((d%360)+360)%360/22.5)%16];}
+function isNW(d){d=((d%360)+360)%360;return d>=280||d<=20;} // NW/N/NNW quadrant
+function isSW(d){d=((d%360)+360)%360;return d>=160&&d<=250;} // S through W-SW
+function codeInfo(c){
+  if(c===0) return {t:"Fine",wet:false};
+  if(c===1) return {t:"Mostly fine",wet:false};
+  if(c===2) return {t:"Partly cloudy",wet:false};
+  if(c===3) return {t:"Cloudy",wet:false};
+  if(c===45||c===48) return {t:"Fog",wet:false};
+  if(c>=51&&c<=57) return {t:"Drizzle",wet:true};
+  if(c>=61&&c<=67) return {t:"Rain",wet:true};
+  if(c>=71&&c<=77) return {t:"Snow",wet:true};
+  if(c>=80&&c<=82) return {t:"Showers",wet:true};
+  if(c>=85&&c<=86) return {t:"Snow showers",wet:true};
+  if(c>=95) return {t:"Thunderstorm",wet:true};
+  return {t:"&mdash;",wet:false};
+}
+// overall day rating: local (east) + ranges/west + wave aloft
+function rateDay(eR,eG,wR,w7){
+  if(eR>=5 || eG>=32 || wR>=25 || w7>=35) return "r";
+  if(eR>=1 || eG>=25 || wR>=10 || w7>=22) return "a";
+  return "g";
+}
+
+function buildSynopsis(east,west,inter){
+  const dates=east.daily.time;
+  const n=dates.length;
+  const eR=east.daily.precipitation_sum, wR=west.daily.precipitation_sum;
+  const eG=east.daily.wind_gusts_10m_max, eD=east.daily.wind_direction_10m_dominant;
+  const eTx=east.daily.temperature_2m_max, eTn=east.daily.temperature_2m_min, eC=east.daily.weather_code;
+  const wG=west.daily.wind_gusts_10m_max;
+  // 700 hPa daily max wind (Timaru column)
+  const h=east.hourly, w7=[];
+  for(let d=0;d<n;d++){let mx=0,dir=0;for(let i=d*24;i<d*24+24&&i<h.wind_speed_700hPa.length;i++){if(h.wind_speed_700hPa[i]>mx){mx=h.wind_speed_700hPa[i];dir=h.wind_direction_700hPa[i];}}w7.push({s:Math.round(mx),d:Math.round(dir)});}
+
+  const dn=i=>WD[partOfDate(dates[i]).getDay()];
+  // feature detection
+  let foehn=[], wetWest=[], changeIdx=-1, windyRanges=[];
+  for(let i=0;i<n;i++){
+    if(wR[i]>=12 && eR[i]<6 && (isNW(w7[i].d)||isNW(eD[i]))) foehn.push(i);
+    if(wR[i]>=10) wetWest.push(i);
+    if(Math.max(wG[i],eG[i])>=30 && isNW(w7[i].d)) windyRanges.push(i);
+    if(changeIdx<0 && i>0 && eTx[i] <= eTx[i-1]-3) changeIdx=i; // cold front / SW change
+  }
+  const settled = wetWest.length===0 && Math.max(...eG)<20 && Math.max(...w7.map(x=>x.s))<25;
+  const maxWestRain = Math.max(...wR);
+  const maxWestI = wR.indexOf(maxWestRain);
+  const minTn = Math.min(...eTn);
+
+  const tags=[], parts=[];
+  if(foehn.length){
+    tags.push('<span class="tag nw">NOR&rsquo;WESTER</span>');
+    parts.push('A moist northwesterly ahead of a front feeds rain into the West Coast and the ranges'
+      +(maxWestRain>=10?' (peaking around '+Math.round(maxWestRain)+'&nbsp;mm at Hokitika on '+dn(maxWestI)+')':'')
+      +', while the eastern plains stay drier and cloudy in the lee &mdash; the classic nor&rsquo;west split.');
+    if(windyRanges.length) tags.push('<span class="tag front">STRONG&nbsp;ALOFT</span>');
+    if(windyRanges.length) parts.push('Expect turbulence and rough handling through the flying levels in the nor&rsquo;west flow, worst near the ranges, with winds near 10,000&nbsp;ft up to '+Math.max(...w7.map(x=>x.s))+'&nbsp;kt.');
+  } else if(wetWest.length){
+    tags.push('<span class="tag front">RAIN&nbsp;WEST</span>');
+    parts.push('Frontal cloud and rain affect the West Coast and ranges'
+      +(maxWestRain>=10?' (up to about '+Math.round(maxWestRain)+'&nbsp;mm at Hokitika on '+dn(maxWestI)+')':'')
+      +', with the east faring better.');
+  }
+  if(changeIdx>=0){
+    tags.push('<span class="tag change">SW&nbsp;CHANGE</span>');
+    parts.push('A cooler southwest change moves through around '+dn(changeIdx)
+      +', clearing the west and dropping temperatures'
+      +(minTn<=0?', with sharp overnight frosts to follow in the east (lows near '+Math.round(minTn)+'&deg;C).':'.'));
+  }
+  if(settled){
+    tags.push('<span class="tag settled">SETTLED</span>');
+    parts.push('A ridge keeps the South Island mostly settled &mdash; light winds and only isolated showers, though morning frost and fog are likely inland.');
+  }
+  if(!parts.length){
+    parts.push('A mix of cloud and sunny breaks over the period with no single dominant system; check the daily detail and the charts below.');
+  }
+  const lead='Days '+dn(0)+'&ndash;'+dn(n-1)+': '+parts[0];
+  const rest=parts.slice(1).join(" ");
+  return {tags:tags.join(""), lead, rest,
+    days:dates.map((dt,i)=>{
+      const ci=codeInfo(eC[i]);
+      return {wd:dn(i), dstr:partOfDate(dt).getDate()+" "+MON[partOfDate(dt).getMonth()],
+        cond:ci.t, tx:Math.round(eTx[i]), tn:Math.round(eTn[i]),
+        rainE:eR[i], rainW:wR[i], gust:Math.round(eG[i]), dir:dcard16(eD[i]),
+        rate:rateDay(eR[i],eG[i],wR[i],w7[i].s)};
+    })};
+}
+
+function renderOutlook(o){
+  const s=document.getElementById("synopsis");
+  s.innerHTML='<div class="lead">'+o.tags+o.lead+'</div>'+(o.rest?'<div class="patt">'+o.rest+'</div>':'')
+    +'<div class="charts-note" style="margin-top:8px">East-coast figures are for Timaru; &ldquo;west&rdquo; rain is Hokitika. Auto-summary from Open-Meteo model data &mdash; the MetVUW charts below are an independent model; cross-check both.</div>';
+  const dc=document.getElementById("daycards");
+  dc.innerHTML=o.days.map(d=>
+    '<div class="daycard"><div class="dh">'+d.wd+'</div><div class="dd">'+d.dstr+'</div>'
+    +'<div class="cond">'+d.cond+'</div>'
+    +'<div class="rowk"><span>Temp</span><b>'+d.tx+'&deg; / '+d.tn+'&deg;</b></div>'
+    +'<div class="rowk"><span>Rain E&nbsp;/&nbsp;W</span><b>'+d.rainE.toFixed(1)+' / '+d.rainW.toFixed(0)+'mm</b></div>'
+    +'<div class="rowk"><span>Wind</span><b>'+d.dir+' g'+d.gust+'</b></div>'
+    +'<div class="rate '+d.rate+'"></div></div>').join("");
+}
+
+async function fetchOutlook(){
+  const s=document.getElementById("synopsis");
+  try{
+    const r=await fetch(OUT_URL,{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    let d=await r.json(); if(!Array.isArray(d)) d=[d];
+    renderOutlook(buildSynopsis(d[0],d[1],d[2]));
+  }catch(e){
+    s.innerHTML='<span class="miss">Couldn&rsquo;t build the auto-summary ('+e.message+'). The MetVUW charts below still load independently.</span>';
+    document.getElementById("daycards").innerHTML="";
+  }
+}
+
+/* ---- MetVUW chart strip ---- */
+function pad2(n){return String(n).padStart(2,"0");}
+function runCandidates(){
+  const now=new Date();
+  const synHour=now.getUTCHours()>=12?12:0;
+  const base=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate(),synHour);
+  const c=[];
+  for(let i=0;i<5;i++){const r=new Date(base-i*12*3600*1000);
+    c.push(""+r.getUTCFullYear()+pad2(r.getUTCMonth()+1)+pad2(r.getUTCDate())+pad2(r.getUTCHours()));}
+  return c;
+}
+function testImg(url){return new Promise(res=>{const im=new Image();let done=false;
+  im.onload=()=>{if(!done){done=true;res(true);}}; im.onerror=()=>{if(!done){done=true;res(false);}};
+  setTimeout(()=>{if(!done){done=true;res(false);}},7000); im.src=url;});}
+async function resolveRun(){
+  for(const run of runCandidates()){
+    if(await testImg("https://www.metvuw.com/forecast/"+run+"/rain-nzsi-thumb-"+run+"-006.gif")) return run;
+  }
+  return null;
+}
+function validLabel(run,f){
+  const y=+run.slice(0,4),mo=+run.slice(4,6),da=+run.slice(6,8),hr=+run.slice(8,10);
+  const vt=new Date(Date.UTC(y,mo-1,da,hr)+f*3600*1000);
+  return vt.toLocaleString("en-NZ",{weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Pacific/Auckland"});
+}
+async function renderMetvuw(){
+  const strip=document.getElementById("chartstrip"), runEl=document.getElementById("chartrun");
+  const run=await resolveRun();
+  if(!run){strip.innerHTML='<span class="miss">MetVUW charts unavailable right now &mdash; use the link below.</span>';return;}
+  const y=run.slice(0,4),mo=run.slice(4,6),da=run.slice(6,8),hr=run.slice(8,10);
+  runEl.textContent="Model run "+da+"/"+mo+" "+hr+"Z";
+  let html="";
+  for(let f=6;f<=120;f+=6){
+    const ff=pad2(f).length<3?String(f).padStart(3,"0"):String(f);
+    const thumb="https://www.metvuw.com/forecast/"+run+"/rain-nzsi-thumb-"+run+"-"+ff+".gif";
+    const full ="https://www.metvuw.com/forecast/"+run+"/rain-nzsi-"+run+"-"+ff+".gif";
+    html+='<div class="chart-fr"><a href="'+full+'" target="_blank" rel="noopener">'
+      +'<img loading="lazy" src="'+thumb+'" alt="MetVUW rain +'+f+'h"></a>'
+      +'<div class="cap">'+validLabel(run,f)+'</div></div>';
+  }
+  strip.innerHTML=html;
+}
+
+function loadOutlook(){ fetchOutlook(); renderMetvuw(); }
+document.getElementById("reload").addEventListener("click",loadOutlook);
+loadOutlook();
+</script>
+</body>
+</html>
