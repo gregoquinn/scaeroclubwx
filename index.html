@@ -774,6 +774,10 @@ function profURL(lat,lon){
     +"&wind_speed_unit=kn&timezone=Pacific%2FAuckland&forecast_days=1";
 }
 function windColor(s){ return s>28?"#c0392b":s>15?"#c9820a":"#1f9d55"; }
+// Oktas: eighths of sky covered, the same convention used in a METAR (FEW
+// 1-2, SCT 3-4, BKN 5-7, OVC 8). Model cover comes through as a percentage,
+// so this just rounds it onto the 0-8 okta scale pilots actually read.
+function oktas(pct){ return Math.max(0,Math.min(8,Math.round(pct/100*8))); }
 
 // A soft, painterly cumulus silhouette: seeded overlapping puffs lit by a
 // radial gradient (so each puff reads as rounded, not a flat circle), blurred
@@ -840,7 +844,10 @@ function renderProfile(a, layers, frzAGL){
   for(let i=0;i<layers.length-1;i++){ const c1=layers[i].cc,c2=layers[i+1].cc; if(c1==null&&c2==null) continue;
     const cov=(c1==null)?c2:(c2==null)?c1:(c1+c2)/2; if(cov<8) continue;
     const yTt=yOf(layers[i+1].agl), yB=yOf(layers[i].agl);
-    s+=cloudPuffGroup(cX,cX+cW,yTt,yB,cov); }
+    s+=cloudPuffGroup(cX,cX+cW,yTt,yB,cov);
+    const ok=oktas(cov), midY=(yTt+yB)/2;
+    s+='<g><rect x="'+(cX+4)+'" y="'+(midY-8).toFixed(1)+'" width="28" height="15" rx="7.5" fill="#16202c" fill-opacity="0.6"/>'
+      +'<text x="'+(cX+18)+'" y="'+(midY+2.7).toFixed(1)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">'+ok+'/8</text></g>'; }
   const lowC=layers.find(l=>l.cc>=40&&l.agl>0);
   if(lowC) s+='<text x="'+(cX+5)+'" y="'+(yOf(lowC.agl)-3)+'" font-size="10" fill="#16202c">'+coverWord(lowC.cc)+' '+lowC.cc+'%</text>';
   else if(!layers.some(l=>l.cc>=25)) s+='<text x="'+(cX+cW/2)+'" y="'+yOf(1600)+'" text-anchor="middle" font-size="10" fill="#8b97a3">mostly clear</text>';
@@ -876,7 +883,7 @@ function renderProfile(a, layers, frzAGL){
   if(mx) notes.push("Strongest wind about "+mx.ws+" kt from the "+dirCard(mx.wd)+" near "+(mx.agl===0?"the surface":mx.agl.toLocaleString()+" ft")+".");
   return '<div style="font-size:12.5px;color:#5c6b7a;margin-bottom:6px">'+a.name+' ('+a.icao+') &middot; field '+a.elev+' ft &middot; now</div>'+s
     +'<div class="pnotes">'+notes.map(n=>'<div>'+n+'</div>').join("")+'</div>'
-    +'<div class="plegend">Arrows fly with the wind; colour shows speed (green calm, amber moderate, red strong). Cloud shading shows model cloud by height. Model guidance, not a real sounding &mdash; confirm on the aerodrome forecast.</div>';
+    +'<div class="plegend">Arrows fly with the wind; colour shows speed (green calm, amber moderate, red strong). Cloud shading shows model cloud by height; the dark tag on each layer is oktas &mdash; eighths of sky covered, same scale as a METAR (FEW 1&ndash;2, SCT 3&ndash;4, BKN 5&ndash;7, OVC 8). Model guidance, not a real sounding &mdash; confirm on the aerodrome forecast.</div>';
 }
 
 async function fetchProfile(icao){
